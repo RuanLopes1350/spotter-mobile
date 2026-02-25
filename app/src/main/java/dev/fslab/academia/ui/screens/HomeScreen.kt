@@ -1,39 +1,48 @@
 package dev.fslab.academia.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Scale
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,321 +51,534 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-//import dev.fslab.academia.ui.components.AppNavigationBar
-import dev.fslab.academia.ui.components.AppNavigationBar
+import androidx.compose.ui.unit.sp
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 
-/**
- * HomeScreen - Tela principal após o login (sem NavigationBar)
- */
+// ─── Dados mockados ───────────────────────────────────────────────────────────
+
+private data class DiaSemana(val abrev: String, val numero: Int, val hoje: Boolean = false)
+private data class NavItem(val label: String, val icon: ImageVector)
+
+private val diasSemana = listOf(
+    DiaSemana("DOM", 10),
+    DiaSemana("SEG", 11),
+    DiaSemana("HOJE", 12, hoje = true),
+    DiaSemana("QUA", 13),
+    DiaSemana("QUI", 14),
+    DiaSemana("SEX", 15),
+)
+
+private val navItems = listOf(
+    NavItem("Início", Icons.Filled.Home),
+    NavItem("Treinos", Icons.Filled.FitnessCenter),
+    NavItem("Chat", Icons.Filled.Chat),
+    NavItem("Histórico", Icons.Filled.History),
+    NavItem("Perfil", Icons.Filled.Person),
+)
+
+// ─── TelaInicial ─────────────────────────────────────────────────────────────
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onLogout: () -> Unit = {},
-    onNavigate: (Int) -> Unit = {}
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = true,
+    onToggleTheme: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
-    var selectedIndex by remember { mutableIntStateOf(0) } // Início = index 0
+    var navSelected by remember { mutableIntStateOf(0) }
 
     Scaffold(
-        contentWindowInsets = WindowInsets.systemBars,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Spotter",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Sair",
-                            tint = colors.textOnPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colors.primaryDark,
-                    titleContentColor = colors.textOnPrimary
-                )
-            )
-        },
+        modifier = modifier.fillMaxSize(),
+        containerColor = colors.background,
         bottomBar = {
-            AppNavigationBar(
-                selectedIndex = selectedIndex,
-                onItemSelected = { index ->
-                    if (index == 0) selectedIndex = index  // Já está em Home
-                    else onNavigate(index)                 // Navega para outra tela
+            NavigationBar(
+                containerColor = colors.surface,
+                tonalElevation = 0.dp
+            ) {
+                navItems.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = index == navSelected,
+                        onClick = { navSelected = index },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = item.label,
+                                fontSize = 10.sp,
+                                fontWeight = if (index == navSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = colors.primary,
+                            selectedTextColor = colors.primary,
+                            unselectedIconColor = colors.textSecondary,
+                            unselectedTextColor = colors.textSecondary,
+                            indicatorColor = Color.Transparent
+                        )
+                    )
                 }
-            )
+            }
         }
     ) { innerPadding ->
-        when (selectedIndex) {
-            0 -> HomeInicioContent(
-                modifier = Modifier.padding(innerPadding),
-                onDashboard = { onNavigate(3) },
-                onLogout = onLogout
-            )
-            // 3 → Dashboard navega via onDashboard(), tratado no onItemSelected
-            else -> HomeEmptyContent(modifier = Modifier.padding(innerPadding))
-        }
-    }
-}
-
-/**
- * HomeInicioContent - Conteúdo da aba Início
- */
-@Composable
-private fun HomeInicioContent(
-    modifier: Modifier = Modifier,
-    onDashboard: () -> Unit,
-    onLogout: () -> Unit
-) {
-    val colors = LocalAcademiaColors.current
-
-    val gradientBrush = Brush.verticalGradient(
-        colors = listOf(
-            colors.primaryDark,
-            colors.primary,
-            colors.primary.copy(alpha = 0.7f)
-        )
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(gradientBrush)
-    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(innerPadding)
+                .padding(horizontal = 20.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Box(
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(colors.primary),
-                contentAlignment = Alignment.Center
+            // ── Header: avatar + nome + streak ──────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Avatar
+                    Box(modifier = Modifier.size(52.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(colors.surface)
+                                .border(2.dp, colors.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Person,
+                                contentDescription = "Avatar",
+                                tint = colors.textSecondary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        // Indicador online
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(colors.primary)
+                                .border(2.dp, colors.background, CircleShape)
+                                .align(Alignment.BottomEnd)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = "BEM-VINDO DE VOLTA",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textSecondary,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Olá, Lucas",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = colors.textPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            LinearProgressIndicator(
+                                progress = { 0.6f },
+                                modifier = Modifier
+                                    .width(100.dp)
+                                    .height(5.dp)
+                                    .clip(RoundedCornerShape(50)),
+                                color = colors.primary,
+                                trackColor = colors.lightGray,
+                                strokeCap = StrokeCap.Round
+                            )
+//                            Spacer(modifier = Modifier.width(8.dp))
+//                            Text(
+//                                text = "Nvl. 12",
+//                                fontSize = 11.sp,
+//                                fontWeight = FontWeight.SemiBold,
+//                                color = colors.primary
+//                            )
+                        }
+                    }
+                }
+
+                // Badge streak
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.LocalFireDepartment,
+                        contentDescription = "Streak",
+                        tint = colors.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "15 Dias",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                }
+
                 Icon(
-                    imageVector = Icons.Filled.Home,
-                    contentDescription = "Home",
-                    tint = colors.textOnPrimary,
-                    modifier = Modifier.size(50.dp)
+                    imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                    contentDescription = "Toggle Theme",
+                    tint = colors.textSecondary,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onToggleTheme() }
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Bem-vindo!",
-                color = colors.textOnPrimary,
-                style = MaterialTheme.typography.displaySmall
-            )
-
-            Text(
-                text = "Você está logado no Fila Cidadã",
-                color = colors.textOnPrimary.copy(alpha = 0.8f),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            // ── Calendário semanal ───────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                diasSemana.forEach { dia ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (dia.hoje) colors.primary else colors.surface)
+                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = dia.abrev,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (dia.hoje) colors.textOnPrimary else colors.textSecondary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${dia.numero}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (dia.hoje) colors.textOnPrimary else colors.textPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (dia.hoje) colors.textOnPrimary
+                                    else Color.Transparent
+                                )
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // ── Card do treino ───────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Badge "TREINO B"
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.primary.copy(alpha = 0.15f))
+                                .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "TREINO B",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primary,
+                                letterSpacing = 1.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(colors.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.FitnessCenter,
+                                contentDescription = null,
+                                tint = colors.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)) {
+                                append("Peito e\n")
+                            }
+                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)) {
+                                append("Tríceps")
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        listOf(
+                            Triple(Icons.Filled.Timer, "Duração", "60 min"),
+                            Triple(Icons.Filled.LocalFireDepartment, "Intensidade", "Alta")
+                        ).forEach { (icon, label, valor) ->
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(colors.lightGray)
+                                    .padding(12.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(icon, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(text = label, fontSize = 11.sp, color = colors.textSecondary)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(text = valor, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Progresso Semanal", fontSize = 12.sp, color = colors.textSecondary)
+                        Text(text = "2/5 Concluídos", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colors.primary)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { 2f / 5f },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(50)),
+                        color = colors.primary,
+                        trackColor = colors.lightGray,
+                        strokeCap = StrokeCap.Round
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Botão INICIAR TREINO
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(colors.primary)
+                            .clickable { }
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = colors.textOnPrimary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "INICIAR TREINO",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 2.sp,
+                                color = colors.textOnPrimary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // ── Recado do Treinador ──────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Recado do Treinador", style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
+                Text(
+                    text = "VER MAIS",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.primary,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.clickable { }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.surface)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(modifier = Modifier.size(46.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(colors.lightGray)
+                            .border(2.dp, colors.primary.copy(alpha = 0.4f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.Person, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(28.dp))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(colors.primary)
+                            .border(2.dp, colors.surface, CircleShape)
+                            .align(Alignment.BottomEnd)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Treinador Marcos", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                        Text(text = "10:30", fontSize = 12.sp, color = colors.textSecondary)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Fala Lucas! Hoje é dia de aumentar a carga no supino. Foca na descida controlada (3s). Bom treino! 👊",
+                        fontSize = 13.sp,
+                        color = colors.textSecondary,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Quick Actions ────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                QuickActionCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Filled.QrCode,
-                    titulo = "Entrar na Fila",
-                    descricao = "Escaneie o QR Code"
-                )
-                QuickActionCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Filled.ConfirmationNumber,
-                    titulo = "Minhas Senhas",
-                    descricao = "2 ativas"
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Dashboard do Cidadão",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = colors.textPrimary
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Acompanhe suas filas, senhas e notificações em tempo real.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.textSecondary,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onDashboard,
+                listOf(
+                    Triple(Icons.Filled.Scale, "Registrar Peso", colors.primary),
+                    Triple(Icons.Filled.WaterDrop, "Beber Água", Color(0xFF60A5FA))
+                ).forEach { (icon, label, iconColor) ->
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.primary
-                        )
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.surface)
+                            .clickable { }
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Dashboard,
-                            contentDescription = "Dashboard",
-                            tint = colors.textOnPrimary
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = "Abrir Dashboard",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = colors.textOnPrimary
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(iconColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(26.dp))
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            // ── Botão Sair ───────────────────────────────
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onLogout,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.error
+                )
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                ) {
-                    Button(
-                        onClick = onLogout,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.error
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Sair",
-                            tint = colors.textOnPrimary
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = "Sair",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = colors.textOnPrimary
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = "Sair",
+                    tint = colors.textOnPrimary
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = "Sair",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.textOnPrimary
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
-/**
- * HomeEmptyContent - Conteúdo vazio para abas sem implementação
- */
+@Preview(showBackground = true, showSystemUi = true, name = "Dark Theme")
 @Composable
-private fun HomeEmptyContent(modifier: Modifier = Modifier) {
-    val colors = LocalAcademiaColors.current
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        colors.primaryDark,
-                        colors.primary,
-                        colors.primary.copy(alpha = 0.7f)
-                    )
-                )
-            )
-    )
+fun TelaInicialDarkPreview() {
+    AcademiaTheme(darkTheme = true) {
+        HomeScreen(isDarkTheme = true)
+    }
 }
 
-/**
- * QuickActionCard - Card de ação rápida na tela inicial
- */
+@Preview(showBackground = true, showSystemUi = true, name = "Light Theme")
 @Composable
-private fun QuickActionCard(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    titulo: String,
-    descricao: String
-) {
-    val colors = LocalAcademiaColors.current
-
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colors.surface.copy(alpha = 0.9f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = titulo,
-                tint = colors.primary,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = titulo,
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.textPrimary,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = descricao,
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.textSecondary,
-                textAlign = TextAlign.Center
-            )
-        }
+fun TelaInicialLightPreview() {
+    AcademiaTheme(darkTheme = false) {
+        HomeScreen(isDarkTheme = false)
     }
 }

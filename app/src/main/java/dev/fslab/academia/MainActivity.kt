@@ -55,6 +55,8 @@ fun AcademiaApp() {
             }
             composable("home") {
                 HomeScreen(
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = { isDarkTheme = !isDarkTheme },
                     onLogout = { navController.navigate("login") }
                 )
             }
