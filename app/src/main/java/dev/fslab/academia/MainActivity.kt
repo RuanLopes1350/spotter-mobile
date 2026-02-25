@@ -4,14 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dev.fslab.academia.ui.screens.auth.LoginScreen
+import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,13 +25,38 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AcademiaTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LoginScreen(
-                        name = "Ruan Lopes",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            AcademiaApp()
+        }
+    }
+}
+
+@Composable
+fun AcademiaApp() {
+    val systemDark = isSystemInDarkTheme()
+    var isDarkTheme by remember { mutableStateOf(systemDark) }
+
+    AcademiaTheme(darkTheme = isDarkTheme) {
+        val navController = rememberNavController()
+
+        NavHost(
+            navController = navController,
+            startDestination = "login"
+        ) {
+            composable("login") {
+                LoginScreen(
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = { isDarkTheme = !isDarkTheme },
+                    onEsqueciSenha = { email ->
+                        navController.navigate("esqueci_senha?email=$email")
+                    },
+                    onRegister = { navController.navigate("cadastro") },
+                    onLogin = { navController.navigate("home") }
+                )
+            }
+            composable("home") {
+                HomeScreen(
+                    onLogout = { navController.navigate("login") }
+                )
             }
         }
     }
