@@ -36,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -86,11 +87,12 @@ private val navItems = listOf(
     NavItem("Perfil", Icons.Filled.Person),
 )
 
-// ─── TelaInicial ─────────────────────────────────────────────────────────────
+// ─── HomeScreen ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    nome: String = "",
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
@@ -146,14 +148,14 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Header: avatar + nome + streak ──────────────────────
+            // ── Header: avatar + nome + ações ────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Avatar + saudação
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Avatar
                     Box(modifier = Modifier.size(52.dp)) {
                         Box(
                             modifier = Modifier
@@ -192,65 +194,79 @@ fun HomeScreen(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "Olá, Lucas",
+                            text = "Olá, $nome!",
                             style = MaterialTheme.typography.headlineLarge,
                             color = colors.textPrimary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LinearProgressIndicator(
-                                progress = { 0.6f },
-                                modifier = Modifier
-                                    .width(100.dp)
-                                    .height(5.dp)
-                                    .clip(RoundedCornerShape(50)),
-                                color = colors.primary,
-                                trackColor = colors.lightGray,
-                                strokeCap = StrokeCap.Round
-                            )
-//                            Spacer(modifier = Modifier.width(8.dp))
-//                            Text(
-//                                text = "Nvl. 12",
-//                                fontSize = 11.sp,
-//                                fontWeight = FontWeight.SemiBold,
-//                                color = colors.primary
-//                            )
-                        }
+                        LinearProgressIndicator(
+                            progress = { 0.6f },
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(50)),
+                            color = colors.primary,
+                            trackColor = colors.lightGray,
+                            strokeCap = StrokeCap.Round
+                        )
                     }
                 }
 
-                // Badge streak
+                // Ações do header: streak + toggle + logout
                 Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(colors.surface)
-                        .border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        Icons.Filled.LocalFireDepartment,
-                        contentDescription = "Streak",
-                        tint = colors.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "15 Dias",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                }
+                    // Badge streak
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(colors.surface)
+                            .border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.LocalFireDepartment,
+                            contentDescription = "Streak",
+                            tint = colors.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "15",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                    }
 
-                Icon(
-                    imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                    contentDescription = "Toggle Theme",
-                    tint = colors.textSecondary,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { onToggleTheme() }
-                )
+                    // Toggle tema
+                    IconButton(
+                        onClick = onToggleTheme,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                            contentDescription = if (isDarkTheme) "Modo claro" else "Modo escuro",
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Logout
+                    IconButton(
+                        onClick = onLogout,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Sair",
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -287,8 +303,7 @@ fun HomeScreen(
                                 .size(5.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (dia.hoje) colors.textOnPrimary
-                                    else Color.Transparent
+                                    if (dia.hoje) colors.textOnPrimary else Color.Transparent
                                 )
                         )
                     }
@@ -360,28 +375,44 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Estatísticas rápidas do treino
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         listOf(
                             Triple(Icons.Filled.Timer, "Duração", "60 min"),
-                            Triple(Icons.Filled.LocalFireDepartment, "Intensidade", "Alta")
+                            Triple(Icons.Filled.LocalFireDepartment, "Intensidade", "Alta"),
+                            Triple(Icons.Filled.FitnessCenter, "Exercícios", "8")
                         ).forEach { (icon, label, valor) ->
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(colors.lightGray)
-                                    .padding(12.dp)
+                                    .padding(10.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(icon, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = label, fontSize = 11.sp, color = colors.textSecondary)
+                                    Icon(
+                                        icon,
+                                        contentDescription = null,
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = label,
+                                        fontSize = 10.sp,
+                                        color = colors.textSecondary
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = valor, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                Text(
+                                    text = valor,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
                             }
                         }
                     }
@@ -421,7 +452,12 @@ fun HomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = colors.textOnPrimary, modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = null,
+                                tint = colors.textOnPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "INICIAR TREINO",
@@ -443,7 +479,11 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Recado do Treinador", style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
+                Text(
+                    text = "Recado do Treinador",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = colors.textPrimary
+                )
                 Text(
                     text = "VER MAIS",
                     fontSize = 12.sp,
@@ -473,7 +513,12 @@ fun HomeScreen(
                             .border(2.dp, colors.primary.copy(alpha = 0.4f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Filled.Person, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(28.dp))
+                        Icon(
+                            Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                     Box(
                         modifier = Modifier
@@ -488,8 +533,16 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Treinador Marcos", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Treinador Marcos",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
                         Text(text = "10:30", fontSize = 12.sp, color = colors.textSecondary)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -511,7 +564,7 @@ fun HomeScreen(
             ) {
                 listOf(
                     Triple(Icons.Filled.Scale, "Registrar Peso", colors.primary),
-                    Triple(Icons.Filled.WaterDrop, "Beber Água", Color(0xFF60A5FA))
+                    Triple(Icons.Filled.WaterDrop, "Beber Água", colors.featureCyan)
                 ).forEach { (icon, label, iconColor) ->
                     Column(
                         modifier = Modifier
@@ -529,37 +582,22 @@ fun HomeScreen(
                                 .background(iconColor.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(26.dp))
+                            Icon(
+                                icon,
+                                contentDescription = null,
+                                tint = iconColor,
+                                modifier = Modifier.size(26.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
-                        Text(text = label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+                        Text(
+                            text = label,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textPrimary
+                        )
                     }
                 }
-            }
-
-            // ── Botão Sair ───────────────────────────────
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                onClick = onLogout,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.error
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = "Sair",
-                    tint = colors.textOnPrimary
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    text = "Sair",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.textOnPrimary
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
