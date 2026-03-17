@@ -4,74 +4,96 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import dev.fslab.academia.ui.screens.auth.LoginScreen
+import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.ui.screens.HomeScreen
-import dev.fslab.academia.ui.screens.auth.TreinosScreen
+import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
+import dev.fslab.academia.ui.viewmodel.AuthState
+import dev.fslab.academia.ui.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val authViewModel: AuthViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CookieManager.init(applicationContext)
         enableEdgeToEdge()
         setContent {
-            AcademiaApp()
+            AcademiaApp(authViewModel = authViewModel)
         }
     }
 }
 
 @Composable
-fun AcademiaApp() {
-
+fun AcademiaApp(authViewModel: AuthViewModel) {
     val systemDark = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(systemDark) }
 
-    AcademiaTheme(darkTheme = isDarkTheme) {
+    val authState by authViewModel.authState.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
+    AcademiaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
+
+        LaunchedEffect(Unit) {
+            authViewModel.checkSession()
+        }
+
+        LaunchedEffect(authState) {
+            when (authState) {
+                is AuthState.Success -> {
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                AuthState.Idle -> {
+                    navController.navigate("login") {
+                        popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> Unit
+            }
+        }
 
         NavHost(
             navController = navController,
-
-            // 👇 TROQUE PARA "treinos" SE QUISER TESTAR DIRETO
-            startDestination = "treinos"
+            startDestination = "login"
         ) {
-
-            // ================= LOGIN =================
             composable("login") {
                 LoginScreen(
                     isDarkTheme = isDarkTheme,
+                    isLoading = authState is AuthState.Loading,
+                    errorMessage = (authState as? AuthState.Error)?.message,
                     onToggleTheme = { isDarkTheme = !isDarkTheme },
-                    onEsqueciSenha = { email ->
-                        navController.navigate("esqueci_senha?email=$email")
-                    },
-                    onRegister = { navController.navigate("cadastro") },
-                    onLogin = {
-                        navController.navigate("home")
+                    onEsqueciSenha = { /* TODO */ },
+                    onRegister = { /* TODO */ },
+                    onLogin = { email, password ->
+                        authViewModel.loginUser(email = email, password = password)
                     }
                 )
             }
-
-            // ================= HOME =================
             composable("home") {
                 HomeScreen(
+                    nome = currentUser?.name.orEmpty(),
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = { isDarkTheme = !isDarkTheme },
-
-
-                    onLogout = {
-                        navController.navigate("login")
-                    }
+                    onLogout = { authViewModel.logout() }
                 )
-            }
-
-            // ================= TREINOS =================
-            composable("treinos") {
-                TreinosScreen()
             }
         }
     }

@@ -87,6 +87,15 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
+    // OkHttp core (necessário para CookieJar e cookieJar builder)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // PersistentCookieJar — persiste cookies entre sessões via SharedPreferences
+    implementation("com.github.franmontiel:PersistentCookieJar:v1.0.1")
+
+    // Jetpack Security — armazenamento criptografado dos cookies (AES-256)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // Coroutines para operações assíncronas
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 

@@ -39,79 +39,41 @@ data class AcademiaColors(
     val successText: Color,
     val success: Color,
     val lightGray: Color,
-    // Cores para cards de features (variam entre light/dark)
     val featureBlue: Color,
     val featureGreen: Color,
     val featureOrange: Color,
     val featureCyan: Color,
     val featurePink: Color,
     val featureRed: Color,
-    val isDark: Boolean = false  // Flag para identificar o tema
+    val isDark: Boolean = false
 )
 
 /**
- * Cores para tema claro — Verde/Branco com accent #5DD62C
- */
-val LightAcademiaColors = AcademiaColors(
-    background = PrimaryLightBlue,
-    backgroundGradientStart = PrimaryLightBlue,
-    backgroundGradientEnd = SurfaceLight,
-    surface = SurfaceWhite,
-    textPrimary = TextPrimary,
-    textSecondary = TextSecondary,
-    textTertiary = TextTertiary,
-    textOnPrimary = DarkTextOnGreen,    // texto preto sobre botão verde
-    textInput = TextBlack,
-    primary = PrimaryBlue,
-    primaryDark = PrimaryBlue,
-    iconGray = IconGray,
-    inputBorder = InputBorderGray,
-    mediumGray = MediumGray,
-    errorBackground = ErrorBackground,
-    errorText = ErrorText,
-    errorButton = ErrorButton,
-    error = Color(0xFFDC2626),
-    successBackground = SuccessBackground,
-    successText = SuccessText,
-    success = Color(0xFF10B981),
-    lightGray = LightGray,
-    // Cores para cards de features
-    featureBlue = Color(0xFF4A6CF7),
-    featureGreen = Color(0xFF16A34A),
-    featureOrange = Color(0xFFF59E0B),
-    featureCyan = Color(0xFF06B6D4),
-    featurePink = Color(0xFFEC4899),
-    featureRed = Color(0xFFEF4444),
-    isDark = false
-)
-
-/**
- * Cores para tema escuro — Fábrica 4 (preto-esverdeado + accent #5DD62C)
+ * Cores para tema escuro — Fábrica 4 (Mapeado direto do Design System)
  */
 val DarkAcademiaTesteColors = AcademiaColors(
     background = DarkBg,
     backgroundGradientStart = DarkBg,
     backgroundGradientEnd = DarkBgGradient,
-    surface = DarkSurface,
-    textPrimary = DarkTextPrimary,
-    textSecondary = DarkTextSecondary,
+    surface = SurfaceDark,                // #1E1E1E - Cor exata dos cards do print
+    textPrimary = TextWhite,              // #F5F5F5 - Cor exata do texto
+    textSecondary = TextGraySecondary,
     textTertiary = DarkTextTertiary,
-    textOnPrimary = DarkTextOnGreen,    // texto preto sobre botão verde
-    textInput = DarkTextInput,
-    primary = PrimaryBlue,              // #5DD62C — verde vibrante
-    primaryDark = PrimaryBlue,          // mesmo verde (sem distinção no dark)
-    iconGray = DarkIconColor,
+    textOnPrimary = TextDarkOnPrimary,    // #000000 - Texto PRETO sobre o botão Verde Neon
+    textInput = TextWhite,
+    primary = PrimaryNeon,                // #5DD62C - O Verde Neon vibrante
+    primaryDark = SecondaryDarkGreen,     // Verde escuro de suporte
+    iconGray = IconMuted,
     inputBorder = DarkInputBorder,
-    mediumGray = DarkTextTertiary,      // placeholder dark
-    errorBackground = Color(0xFF2E1212),
-    errorText = Color(0xFFFF6B6B),
-    errorButton = Color(0xFFEF4444),
-    error = Color(0xFFFF6B6B),
-    successBackground = Color(0xFF0F2A0F),
-    successText = Color(0xFF6EED6E),
-    success = PrimaryBlue,
-    lightGray = DarkInputBg,            // fundo dos inputs dark
-    // Cores para cards de features (Dark — vibrantes sobre fundo escuro)
+    mediumGray = TextGraySecondary,
+    errorBackground = ErrorBackground,
+    errorText = ErrorText,
+    errorButton = ErrorButton,
+    error = ErrorText,
+    successBackground = SuccessBackground,
+    successText = SuccessText,
+    success = PrimaryNeon,
+    lightGray = DarkInputBg,              // fundo dos inputs no dark
     featureBlue = Color(0xFF6B8AFF),
     featureGreen = Color(0xFF4ADE80),
     featureOrange = Color(0xFFFFBB5C),
@@ -122,55 +84,76 @@ val DarkAcademiaTesteColors = AcademiaColors(
 )
 
 /**
- * CompositionLocal para acessar as cores customizadas
- * compositionLocalOf permite mudanças dinâmicas e propaga recomposição
- * ao invés de usar um objeto singleton, usamos CompositionLocal
- * para que as cores possam ser reativas e mudem conforme o tema sem precisar reiniciar a aplicação
- *
- * ⚠️ Para o toggle de tema funcionar, o estado DEVE ser gerenciado no Activity/NavHost:
- *
- *   var isDark by remember { mutableStateOf(true) }
- *   AcademiaTheme(darkTheme = isDark) {
- *       LoginScreen(isDarkTheme = isDark, onToggleTheme = { isDark = !isDark })
- *   }
+ * Cores para tema claro — Mantidas baseadas na sua estrutura original
  */
+val LightAcademiaColors = AcademiaColors(
+    background = PrimaryLightGreen,
+//    backgroundGradientStart = PrimaryLightGreen,
+    backgroundGradientStart = SecondaryDarkGreen,
+//    backgroundGradientEnd = SecondaryDarkGreen,
+    backgroundGradientEnd = PrimaryLightGreen,
+    surface = SurfaceWhite,
+    textPrimary = TextPrimaryLight,
+    textSecondary = TextSecondaryLight,
+    textTertiary = TextSecondaryLight,
+    textOnPrimary = TextDarkOnPrimary,
+    textInput = TextPrimaryLight,
+    primary = PrimaryNeon,
+    primaryDark = SecondaryDarkGreen,
+    iconGray = Color(0xFF5A8A48),
+    inputBorder = InputBorderLight,
+    mediumGray = Color(0xFF9AB09A),
+    errorBackground = Color(0xFFFFEBEE),
+    errorText = Color(0xFFC62828),
+    errorButton = Color(0xFFEF4444),
+    error = Color(0xFFDC2626),
+    successBackground = Color(0xFFE8F5E9),
+    successText = Color(0xFF2E7D32),
+    success = Color(0xFF10B981),
+    lightGray = LightGray,
+    featureBlue = Color(0xFF4A6CF7),
+    featureGreen = Color(0xFF16A34A),
+    featureOrange = Color(0xFFF59E0B),
+    featureCyan = Color(0xFF06B6D4),
+    featurePink = Color(0xFFEC4899),
+    featureRed = Color(0xFFEF4444),
+    isDark = false
+)
+
 val LocalAcademiaColors = compositionLocalOf { DarkAcademiaTesteColors }
 
 /**
- * DarkColorScheme - Paleta Material 3 para tema escuro (Verde/Preto)
+ * DarkColorScheme - Paleta Material 3
  */
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryBlue,
-    secondary = DarkTextSecondary,
-    tertiary = PrimaryBlueDark,
+    primary = PrimaryNeon,
+    secondary = SecondaryDarkGreen,
+    tertiary = PrimaryNeon,
     background = DarkBg,
-    surface = DarkSurface,
-    onPrimary = DarkTextOnGreen,
-    onSecondary = DarkTextPrimary,
-    onTertiary = DarkTextPrimary,
-    onBackground = DarkTextPrimary,
-    onSurface = DarkTextPrimary
+    surface = SurfaceDark,
+    onPrimary = TextDarkOnPrimary,
+    onSecondary = TextWhite,
+    onTertiary = TextWhite,
+    onBackground = TextWhite,
+    onSurface = TextWhite
 )
 
 /**
- * LightColorScheme - Paleta Material 3 para tema claro (Verde/Branco)
+ * LightColorScheme - Paleta Material 3
  */
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
-    secondary = SecondaryGray,
-    tertiary = PrimaryBlueDark,
-    background = PrimaryLightBlue,
+    primary = PrimaryNeon,
+    secondary = SecondaryDarkGreen,
+    tertiary = PrimaryNeon,
+    background = PrimaryLightGreen,
     surface = SurfaceWhite,
-    onPrimary = DarkTextOnGreen,
-    onSecondary = TextPrimary,
-    onTertiary = TextPrimary,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary
+    onPrimary = TextDarkOnPrimary,
+    onSecondary = TextPrimaryLight,
+    onTertiary = TextPrimaryLight,
+    onBackground = TextPrimaryLight,
+    onSurface = TextPrimaryLight
 )
 
-/**
- * FilaTesteTheme - Função composable que aplica o tema à aplicação
- */
 @Composable
 fun AcademiaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -186,13 +169,12 @@ fun AcademiaTheme(
         else -> LightColorScheme
     }
 
-    // Seleciona as cores customizadas baseado no tema
-    val AcademiaColors = if (darkTheme) DarkAcademiaTesteColors else LightAcademiaColors
+    val academiaColors = if (darkTheme) DarkAcademiaTesteColors else LightAcademiaColors
 
-    CompositionLocalProvider(LocalAcademiaColors provides AcademiaColors) {
+    CompositionLocalProvider(LocalAcademiaColors provides academiaColors) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography,
+            typography = Typography, // Lembre-se de configurar as fontes aqui!
             content = content
         )
     }
