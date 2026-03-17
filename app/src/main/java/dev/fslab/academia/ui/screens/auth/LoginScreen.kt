@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,10 +84,12 @@ import dev.fslab.academia.ui.theme.LocalAcademiaColors
 fun LoginScreen(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = true,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onToggleTheme: () -> Unit = {},
     onEsqueciSenha: (String) -> Unit = {},
     onRegister: () -> Unit = {},
-    onLogin: () -> Unit = {}
+    onLogin: (String, String) -> Unit = { _, _ -> }
 ) {
     val colors = LocalAcademiaColors.current
 
@@ -375,11 +378,25 @@ fun LoginScreen(
                         )
                     }
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // ── Mensagem de erro ───────────────────────────────
+                    if (!errorMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(32.dp))
 
                     // ── Botão ENTRAR ──────────────────────────────────
                     Button(
-                        onClick = { onLogin() },
+                        onClick = { onLogin(email.trim(), senha) },
+                        enabled = !isLoading && email.isNotBlank() && senha.isNotBlank(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
@@ -394,13 +411,21 @@ fun LoginScreen(
                             containerColor = colors.primary
                         )
                     ) {
-                        Text(
-                            text = "ENTRAR  →",
-                            color = colors.textOnPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 2.sp
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = colors.textOnPrimary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "ENTRAR  ->",
+                                color = colors.textOnPrimary,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 2.sp
+                            )
+                        }
                     }
                 }
             }

@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    const val BASE_URL = "http://localhost:5000/api/"
+    const val BASE_URL = "http://192.168.0.143:1350/api/"
 
     private val gson = GsonBuilder().setLenient().create()
 
@@ -17,9 +17,8 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // OkHttpClient com CookieJar — o OkHttp passa a gerenciar cookies automaticamente
     private val okHttpClient = OkHttpClient.Builder()
-        .cookieJar(CookieManager.cookieJar)   // ← Chave da migração
+        .cookieJar(CookieManager.cookieJar)
         .addInterceptor(loggingInterceptor)
         .followRedirects(true)
         .connectTimeout(30, TimeUnit.SECONDS)

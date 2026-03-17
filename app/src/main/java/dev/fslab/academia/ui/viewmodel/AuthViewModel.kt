@@ -1,22 +1,22 @@
 package dev.fslab.academia.ui.viewmodel
 
-import android.util.Base64
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.fslab.academia.model.*
-import dev.fslab.academia.network.RetrofitClient
-import com.google.gson.Gson
+import dev.fslab.academia.model.LoginRequest
+import dev.fslab.academia.model.User
+import dev.fslab.academia.model.toUser
 import dev.fslab.academia.network.CookieManager
+import dev.fslab.academia.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import retrofit2.HttpException
 
 sealed class AuthState {
-    object Idle : AuthState()
-    object Loading : AuthState()
+    data object Idle : AuthState()
+    data object Loading : AuthState()
     data class Success(val user: User) : AuthState()
     data class Error(val message: String) : AuthState()
 }
@@ -29,23 +29,26 @@ class AuthViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    // REMOVIDO: _accessToken — não existe mais token JWT no cliente
-
     // ── Verificar sessão existente (auto-login ao abrir o app) ──────
     fun checkSession() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
                 val response = RetrofitClient.authApi.getSession()
-                if (response.isSuccess() && response.user != null) {
-                    val user = response.user.toUser()
+                val user = response.user?.toUser()
+                if (user != null) {
                     _currentUser.value = user
                     _authState.value = AuthState.Success(user)
                 } else {
-                    _authState.value = AuthState.Idle // Sem sessão ativa
+                    _currentUser.value = null
+                    _authState.value = AuthState.Idle
                 }
-            } catch (e: Exception) {
-                _authState.value = AuthState.Idle // Sem sessão
+            } catch (_: HttpException) {
+                _currentUser.value = null
+                _authState.value = AuthState.Idle
+            } catch (_: Exception) {
+                _currentUser.value = null
+                _authState.value = AuthState.Idle
             }
         }
     }
@@ -56,28 +59,21 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = RetrofitClient.authApi.login(
-                    LoginRequest(email = email, password = password)
+                    LoginRequest(email = email.trim(), password = password)
                 )
 
-                if (response.isSuccess() && response.user != null) {
-                    // Cookie de sessão já foi armazenado automaticamente pelo CookieJar.
-                    // Basta ler os dados do usuário da resposta JSON.
-                    val user = response.user.toUser()
+                val user = response.user?.toUser()
+                if (user != null) {
                     _currentUser.value = user
                     _authState.value = AuthState.Success(user)
                 } else {
-                    _authState.value = AuthState.Error("Credenciais inválidas")
+                    _authState.value = AuthState.Error("Nao foi possivel obter os dados do usuario")
                 }
-            } catch (e: retrofit2.HttpException) {
-                val msg = when (e.code()) {
-                    401 -> "Email ou senha incorretos"
-                    429 -> "Muitas tentativas. Aguarde um momento."
-                    500 -> "Erro no servidor. Tente novamente mais tarde."
-                    else -> "Erro: ${e.message()}"
-                }
-                _authState.value = AuthState.Error(msg)
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error("Sem conexão com a internet")
+            } catch (e: HttpException) {
+                val apiMessage = e.response()?.errorBody()?.string()?.let(::extractApiErrorMessage)
+                _authState.value = AuthState.Error(apiMessage ?: mapHttpError(e.code()))
+            } catch (_: Exception) {
+                _authState.value = AuthState.Error("Sem conexao com a internet")
             }
         }
     }
@@ -86,8 +82,8 @@ class AuthViewModel : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             try {
-                RetrofitClient.authApi.logout()  // Invalida sessão no servidor
-            } catch (e: Exception) {
+                RetrofitClient.authApi.logout()
+            } catch (_: Exception) {
                 // Ignora erro de rede no logout — limpa localmente de qualquer forma
             } finally {
                 CookieManager.clearCookies()      // Remove cookie do dispositivo
@@ -95,5 +91,25 @@ class AuthViewModel : ViewModel() {
                 _authState.value = AuthState.Idle
             }
         }
+    }
+
+    private fun mapHttpError(code: Int): String = when (code) {
+        400 -> "Dados invalidos. Verifique email e senha."
+        401 -> "Email ou senha incorretos"
+        403 -> "Acesso negado"
+        429 -> "Muitas tentativas. Aguarde um momento."
+        in 500..599 -> "Erro no servidor. Tente novamente mais tarde."
+        else -> "Falha ao autenticar. Codigo HTTP: $code"
+    }
+
+    private fun extractApiErrorMessage(rawBody: String): String? {
+        return runCatching {
+            val json = JSONObject(rawBody)
+            when {
+                json.has("message") -> json.getString("message")
+                json.has("error") -> json.getString("error")
+                else -> null
+            }
+        }.getOrNull()?.takeIf { it.isNotBlank() }
     }
 }

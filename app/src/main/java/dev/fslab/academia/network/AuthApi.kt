@@ -1,10 +1,13 @@
 package dev.fslab.academia.network
 
-import dev.fslab.academia.model.*
+import dev.fslab.academia.model.GetSessionResponse
+import dev.fslab.academia.model.LoginRequest
+import dev.fslab.academia.model.LoginResponse
+import dev.fslab.academia.model.RegisterRequest
+import dev.fslab.academia.model.RegisterResponse
+import dev.fslab.academia.model.UserData
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.PATCH
 import retrofit2.http.POST
 
 interface AuthApi {
@@ -17,9 +20,9 @@ interface AuthApi {
     @GET("auth/get-session")
     suspend fun getSession(): GetSessionResponse
 
-    @GET("/me")
+    @GET("me")
     suspend fun getProfile(): UserData
 
-    @PATCH("auth/sign-out")
+    @POST("auth/sign-out")
     suspend fun logout()
 }
