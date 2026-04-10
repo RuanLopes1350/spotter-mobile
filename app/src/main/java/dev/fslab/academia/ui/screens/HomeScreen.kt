@@ -96,7 +96,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onOpenExercicios: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
     var navSelected by remember { mutableIntStateOf(0) }
@@ -112,7 +113,12 @@ fun HomeScreen(
                 navItems.forEachIndexed { index, item ->
                     NavigationBarItem(
                         selected = index == navSelected,
-                        onClick = { navSelected = index },
+                        onClick = {
+                            navSelected = index
+                            if (index == 1) {
+                                onOpenExercicios()
+                            }
+                        },
                         icon = {
                             Icon(
                                 imageVector = item.icon,
