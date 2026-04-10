@@ -72,7 +72,8 @@ class AuthViewModel : ViewModel() {
             } catch (e: HttpException) {
                 val apiMessage = e.response()?.errorBody()?.string()?.let(::extractApiErrorMessage)
                 _authState.value = AuthState.Error(apiMessage ?: mapHttpError(e.code()))
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Erro real: ${e::class.simpleName} - ${e.message}", e)
                 _authState.value = AuthState.Error("Sem conexao com a internet")
             }
         }
