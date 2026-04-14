@@ -18,32 +18,42 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.ui.screens.HomeScreen
+import dev.fslab.academia.ui.screens.auth.ExerciciosScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
+import dev.fslab.academia.ui.viewmodel.ExerciciosViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by viewModels()
+    private val exerciciosViewModel: ExerciciosViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CookieManager.init(applicationContext)
         enableEdgeToEdge()
         setContent {
-            AcademiaApp(authViewModel = authViewModel)
+            AcademiaApp(
+                authViewModel = authViewModel,
+                exerciciosViewModel = exerciciosViewModel
+            )
         }
     }
 }
 
 @Composable
-fun AcademiaApp(authViewModel: AuthViewModel) {
+fun AcademiaApp(
+    authViewModel: AuthViewModel,
+    exerciciosViewModel: ExerciciosViewModel
+) {
     val systemDark = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(systemDark) }
 
     val authState by authViewModel.authState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val exerciciosState by exerciciosViewModel.uiState.collectAsState()
 
     AcademiaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
@@ -92,7 +102,32 @@ fun AcademiaApp(authViewModel: AuthViewModel) {
                     nome = currentUser?.name.orEmpty(),
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = { isDarkTheme = !isDarkTheme },
-                    onLogout = { authViewModel.logout() }
+                    onLogout = { authViewModel.logout() },
+                    onOpenExercicios = {
+                        navController.navigate("exercicios") {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+
+            composable("exercicios") {
+                LaunchedEffect(Unit) {
+                    exerciciosViewModel.carregarExercicios()
+                }
+
+                ExerciciosScreen(
+                    uiState = exerciciosState,
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = { isDarkTheme = !isDarkTheme },
+                    onBackHome = {
+                        navController.navigate("home") {
+                            launchSingleTop = true
+                        }
+                    },
+                    onReload = {
+                        exerciciosViewModel.carregarExercicios(force = true)
+                    }
                 )
             }
         }
