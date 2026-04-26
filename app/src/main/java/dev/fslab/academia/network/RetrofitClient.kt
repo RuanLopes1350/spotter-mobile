@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    const val BASE_URL = "http://127.0.0.1:1350/api/"
+    const val BASE_URL = "https://atividadesfisicas-api-qa.yuriprojects.dpdns.org/api/"
 
     private val gson = GsonBuilder().setLenient().create()
 
@@ -32,7 +32,8 @@ object RetrofitClient {
         .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
-    val authApi: AuthApi by lazy {
-        retrofit.create(AuthApi::class.java)
-    }
+    val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
+    val exercicioApi: ExercicioApi by lazy { retrofit.create(ExercicioApi::class.java) }
+    val musculoApi: MusculoApi by lazy { retrofit.create(MusculoApi::class.java) }
+    val aparelhoApi: AparelhoApi by lazy { retrofit.create(AparelhoApi::class.java) }
 }
