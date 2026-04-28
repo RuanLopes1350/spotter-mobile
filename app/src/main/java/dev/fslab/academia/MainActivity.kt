@@ -8,27 +8,28 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dev.fslab.academia.navigation.Screen
+import dev.fslab.academia.navigation.navigateSafely
+import dev.fslab.academia.navigation.popBackStackSafely
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.ui.screens.HomeScreen
-import dev.fslab.academia.ui.screens.auth.ExerciciosScreen
+import dev.fslab.academia.ui.screens.aluno.ExercicioCatalogoScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
-import dev.fslab.academia.ui.viewmodel.ExerciciosViewModel
+import dev.fslab.academia.ui.viewmodel.ThemeMode
+import dev.fslab.academia.ui.viewmodel.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by viewModels()
-    private val exerciciosViewModel: ExerciciosViewModel by viewModels()
+    private val themeViewModel: ThemeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             AcademiaApp(
                 authViewModel = authViewModel,
-                exerciciosViewModel = exerciciosViewModel
+                themeViewModel = themeViewModel
             )
         }
     }
@@ -46,14 +47,18 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AcademiaApp(
     authViewModel: AuthViewModel,
-    exerciciosViewModel: ExerciciosViewModel
+    themeViewModel: ThemeViewModel
 ) {
+    val themeMode by themeViewModel.themeMode.collectAsState()
     val systemDark = isSystemInDarkTheme()
-    var isDarkTheme by remember { mutableStateOf(systemDark) }
+    val isDarkTheme = when (themeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> systemDark
+    }
 
     val authState by authViewModel.authState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val exerciciosState by exerciciosViewModel.uiState.collectAsState()
 
     AcademiaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
@@ -64,17 +69,13 @@ fun AcademiaApp(
 
         LaunchedEffect(authState) {
             when (authState) {
-                is AuthState.Success -> {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                        launchSingleTop = true
-                    }
+                is AuthState.Success -> navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                    launchSingleTop = true
                 }
-                AuthState.Idle -> {
-                    navController.navigate("login") {
-                        popUpTo("login") { inclusive = true }
-                        launchSingleTop = true
-                    }
+                AuthState.Idle -> navController.navigate(Screen.Login.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                    launchSingleTop = true
                 }
                 else -> Unit
             }
@@ -82,51 +83,43 @@ fun AcademiaApp(
 
         NavHost(
             navController = navController,
-            startDestination = "login"
+            startDestination = Screen.Login.route
         ) {
-            composable("login") {
+            composable(Screen.Login.route) {
                 LoginScreen(
                     isDarkTheme = isDarkTheme,
                     isLoading = authState is AuthState.Loading,
                     errorMessage = (authState as? AuthState.Error)?.message,
-                    onToggleTheme = { isDarkTheme = !isDarkTheme },
-                    onEsqueciSenha = { /* TODO */ },
-                    onRegister = { /* TODO */ },
+                    onToggleTheme = { themeViewModel.toggle() },
+                    onEsqueciSenha = { },
+                    onRegister = { navController.navigateSafely(Screen.Cadastro.route) },
                     onLogin = { email, password ->
                         authViewModel.loginUser(email = email, password = password)
                     }
                 )
             }
-            composable("home") {
+
+            composable(Screen.Home.route) {
                 HomeScreen(
                     nome = currentUser?.name.orEmpty(),
                     isDarkTheme = isDarkTheme,
-                    onToggleTheme = { isDarkTheme = !isDarkTheme },
+                    onToggleTheme = { themeViewModel.toggle() },
                     onLogout = { authViewModel.logout() },
                     onOpenExercicios = {
-                        navController.navigate("exercicios") {
-                            launchSingleTop = true
-                        }
+                        navController.navigateSafely(Screen.ExercicioCatalogo.route)
                     }
                 )
             }
 
-            composable("exercicios") {
-                LaunchedEffect(Unit) {
-                    exerciciosViewModel.carregarExercicios()
-                }
-
-                ExerciciosScreen(
-                    uiState = exerciciosState,
-                    isDarkTheme = isDarkTheme,
-                    onToggleTheme = { isDarkTheme = !isDarkTheme },
-                    onBackHome = {
-                        navController.navigate("home") {
-                            launchSingleTop = true
+            composable(Screen.ExercicioCatalogo.route) {
+                ExercicioCatalogoScreen(
+                    onBack = { navController.popBackStackSafely() },
+                    onNavigateTab = { route ->
+                        if (route == Screen.Home.route) {
+                            navController.popBackStackSafely()
+                        } else {
+                            navController.navigateSafely(route)
                         }
-                    },
-                    onReload = {
-                        exerciciosViewModel.carregarExercicios(force = true)
                     }
                 )
             }
