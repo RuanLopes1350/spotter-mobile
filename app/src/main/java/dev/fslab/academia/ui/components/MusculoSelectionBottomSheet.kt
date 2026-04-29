@@ -58,6 +58,7 @@ fun MusculoSelectionBottomSheet(
     grupoMuscularInicial: GrupoMuscular? = null,
     onConfirmar: (Set<String>) -> Unit,
     onDismiss: () -> Unit,
+    onConfirmarComDados: ((List<MusculoData>) -> Unit)? = null,
     viewModel: MusculoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
@@ -67,6 +68,7 @@ fun MusculoSelectionBottomSheet(
     var busca by remember { mutableStateOf("") }
     var grupoFiltro by remember { mutableStateOf(grupoMuscularInicial) }
     var selecaoLocal by remember { mutableStateOf(selecionados) }
+    var dadosCache by remember { mutableStateOf<Map<String, MusculoData>>(emptyMap()) }
 
     LaunchedEffect(grupoFiltro, busca) {
         viewModel.carregar(
@@ -157,6 +159,9 @@ fun MusculoSelectionBottomSheet(
                         Text(state.message, color = colors.errorText, modifier = Modifier.padding(16.dp))
                     }
                     is MusculoUiState.Success -> {
+                        LaunchedEffect(state.musculos) {
+                            dadosCache = dadosCache + state.musculos.associateBy { it.id }
+                        }
                         if (state.musculos.isEmpty()) {
                             Text(
                                 "Nenhum músculo encontrado",
@@ -187,7 +192,11 @@ fun MusculoSelectionBottomSheet(
             Spacer(Modifier.height(12.dp))
 
             Button(
-                onClick = { onConfirmar(selecaoLocal) },
+                onClick = {
+                    val dados = selecaoLocal.mapNotNull { dadosCache[it] }
+                    onConfirmarComDados?.invoke(dados)
+                    onConfirmar(selecaoLocal)
+                },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(

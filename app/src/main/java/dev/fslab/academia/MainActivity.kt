@@ -10,15 +10,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dev.fslab.academia.navigation.Screen
 import dev.fslab.academia.navigation.navigateSafely
 import dev.fslab.academia.navigation.popBackStackSafely
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioCatalogoScreen
+import dev.fslab.academia.ui.screens.aluno.ExercicioDetalheScreen
+import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
@@ -120,6 +124,51 @@ fun AcademiaApp(
                         } else {
                             navController.navigateSafely(route)
                         }
+                    },
+                    onAbrirDetalhe = { id ->
+                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id))
+                    },
+                    onCriar = {
+                        navController.navigateSafely(Screen.ExercicioCriar.route)
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.ExercicioDetalhe.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                ExercicioDetalheScreen(
+                    exercicioId = id,
+                    onBack = { navController.popBackStackSafely() },
+                    onEditar = { exId ->
+                        navController.navigateSafely(Screen.ExercicioEditar.comId(exId))
+                    },
+                    onExcluido = { navController.popBackStackSafely() }
+                )
+            }
+
+            composable(Screen.ExercicioCriar.route) {
+                ExercicioFormScreen(
+                    exercicioId = null,
+                    onBack = { navController.popBackStackSafely() },
+                    onSalvo = { id ->
+                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.ExercicioEditar.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                ExercicioFormScreen(
+                    exercicioId = id,
+                    onBack = { navController.popBackStackSafely() },
+                    onSalvo = { exId ->
+                        navController.popBackStackSafely()
                     }
                 )
             }
