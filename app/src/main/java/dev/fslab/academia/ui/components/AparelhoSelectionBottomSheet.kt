@@ -55,6 +55,7 @@ fun AparelhoSelectionBottomSheet(
     selecionados: Set<String>,
     onConfirmar: (Set<String>) -> Unit,
     onDismiss: () -> Unit,
+    onConfirmarComDados: ((List<AparelhoData>) -> Unit)? = null,
     viewModel: AparelhoViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
@@ -63,6 +64,7 @@ fun AparelhoSelectionBottomSheet(
 
     var busca by remember { mutableStateOf("") }
     var selecaoLocal by remember { mutableStateOf(selecionados) }
+    var dadosCache by remember { mutableStateOf<Map<String, AparelhoData>>(emptyMap()) }
 
     LaunchedEffect(busca) {
         viewModel.carregar(nome = busca.takeIf(String::isNotBlank))
@@ -124,6 +126,9 @@ fun AparelhoSelectionBottomSheet(
                         Text(state.message, color = colors.errorText, modifier = Modifier.padding(16.dp))
                     }
                     is AparelhoUiState.Success -> {
+                        LaunchedEffect(state.aparelhos) {
+                            dadosCache = dadosCache + state.aparelhos.associateBy { it.id }
+                        }
                         if (state.aparelhos.isEmpty()) {
                             Text(
                                 "Nenhum aparelho encontrado",
@@ -154,7 +159,11 @@ fun AparelhoSelectionBottomSheet(
             Spacer(Modifier.height(12.dp))
 
             Button(
-                onClick = { onConfirmar(selecaoLocal) },
+                onClick = {
+                    val dados = selecaoLocal.mapNotNull { dadosCache[it] }
+                    onConfirmarComDados?.invoke(dados)
+                    onConfirmar(selecaoLocal)
+                },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
