@@ -1,11 +1,12 @@
 package dev.fslab.academia.ui.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -18,36 +19,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 
-/**
- * Modelo de dados para os itens da NavigationBar
- */
 data class NavItemData(
     val label: String,
     val icon: ImageVector,
+    val route: String,
     val badgeCount: Int = 0
 )
 
-/**
- * Lista padrão de itens da NavigationBar usada em todas as telas
- */
-val defaultNavItems = listOf(
-    NavItemData("Início", Icons.Filled.Home),
-    NavItemData("Filas", Icons.Filled.Search),
-    NavItemData("Senhas", Icons.Filled.ConfirmationNumber, badgeCount = 2),
-    NavItemData("Dashboard", Icons.Filled.Dashboard),
-    NavItemData("Perfil", Icons.Filled.Person)
+val alunoNavItems = listOf(
+    NavItemData("Início", Icons.Filled.Home, "home"),
+    NavItemData("Treinos", Icons.Filled.FitnessCenter, "treinos"),
+    NavItemData("Chat", Icons.Filled.Chat, "chat"),
+    NavItemData("Histórico", Icons.Filled.History, "historico"),
+    NavItemData("Perfil", Icons.Filled.Person, "perfil"),
 )
 
-/**
- * AppNavigationBar - NavigationBar reutilizável do Material Design 3
- *
- * Componente compartilhado usado em todas as telas após o login.
- *
- * @param selectedIndex índice da aba selecionada
- * @param onItemSelected callback quando uma aba é clicada
- */
+val treinadorNavItems = listOf(
+    NavItemData("Início", Icons.Filled.Home, "home"),
+    NavItemData("Alunos", Icons.Filled.Group, "treinador_alunos"),
+    NavItemData("Chat", Icons.Filled.Chat, "chat"),
+    NavItemData("Perfil", Icons.Filled.Person, "perfil"),
+)
+
 @Composable
 fun AppNavigationBar(
+    items: List<NavItemData>,
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit
 ) {
@@ -57,7 +53,7 @@ fun AppNavigationBar(
         containerColor = colors.surface,
         contentColor = colors.primary
     ) {
-        defaultNavItems.forEachIndexed { index, item ->
+        items.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = selectedIndex == index,
                 onClick = { onItemSelected(index) },
@@ -96,4 +92,3 @@ fun AppNavigationBar(
         }
     }
 }
-
