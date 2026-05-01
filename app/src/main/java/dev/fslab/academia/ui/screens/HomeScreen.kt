@@ -97,7 +97,8 @@ fun HomeScreen(
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
     onLogout: () -> Unit = {},
-    onOpenExercicios: () -> Unit = {}
+    onOpenExercicios: () -> Unit = {},
+    onOpenTreinos: () -> Unit = {}
 ) {
     val colors = LocalAcademiaColors.current
     var navSelected by remember { mutableIntStateOf(0) }
@@ -116,7 +117,7 @@ fun HomeScreen(
                         onClick = {
                             navSelected = index
                             if (index == 1) {
-                                onOpenExercicios()
+                                onOpenTreinos()
                             }
                         },
                         icon = {
