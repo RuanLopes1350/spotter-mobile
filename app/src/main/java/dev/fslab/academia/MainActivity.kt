@@ -23,6 +23,9 @@ import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioCatalogoScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
+import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
+import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
+import dev.fslab.academia.ui.screens.aluno.TreinosScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
@@ -111,6 +114,9 @@ fun AcademiaApp(
                     onLogout = { authViewModel.logout() },
                     onOpenExercicios = {
                         navController.navigateSafely(Screen.ExercicioCatalogo.route)
+                    },
+                    onOpenTreinos = {
+                        navController.navigateSafely(Screen.Treinos.route)
                     }
                 )
             }
@@ -168,6 +174,95 @@ fun AcademiaApp(
                     exercicioId = id,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { exId ->
+                        navController.popBackStackSafely()
+                    }
+                )
+            }
+
+            composable(Screen.Treinos.route) {
+                TreinosScreen(
+                    onBack = { navController.popBackStackSafely() },
+                    onNavigateTab = { route ->
+                        if (route == Screen.Home.route) {
+                            navController.popBackStackSafely()
+                        } else {
+                            navController.navigateSafely(route)
+                        }
+                    },
+                    onAbrirDetalhe = { id ->
+                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                    },
+                    onCriar = {
+                        navController.navigateSafely(Screen.TreinoCriar.route)
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.TreinoDetalhe.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                TreinoDetalheScreen(
+                    treinoId = id,
+                    onBack = { navController.popBackStackSafely() },
+                    onEditar = { tId ->
+                        navController.navigateSafely(Screen.TreinoEditar.comId(tId))
+                    },
+                    onExcluido = { navController.popBackStackSafely() }
+                )
+            }
+
+            composable(Screen.TreinoCriar.route) { entry ->
+                val novoId by entry.savedStateHandle
+                    .getStateFlow<String?>("novo_exercicio_id", null)
+                    .collectAsState()
+                TreinoFormScreen(
+                    treinoId = null,
+                    onBack = { navController.popBackStackSafely() },
+                    onSalvo = { id ->
+                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                    },
+                    onCriarExercicio = {
+                        navController.navigateSafely(Screen.ExercicioCriarParaTreino.route)
+                    },
+                    novoExercicioId = novoId,
+                    onConsumirNovoExercicio = {
+                        entry.savedStateHandle["novo_exercicio_id"] = null
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.TreinoEditar.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                val novoId by entry.savedStateHandle
+                    .getStateFlow<String?>("novo_exercicio_id", null)
+                    .collectAsState()
+                TreinoFormScreen(
+                    treinoId = id,
+                    onBack = { navController.popBackStackSafely() },
+                    onSalvo = { _ -> navController.popBackStackSafely() },
+                    onCriarExercicio = {
+                        navController.navigateSafely(Screen.ExercicioCriarParaTreino.route)
+                    },
+                    novoExercicioId = novoId,
+                    onConsumirNovoExercicio = {
+                        entry.savedStateHandle["novo_exercicio_id"] = null
+                    }
+                )
+            }
+
+            composable(Screen.ExercicioCriarParaTreino.route) {
+                ExercicioFormScreen(
+                    exercicioId = null,
+                    onBack = { navController.popBackStackSafely() },
+                    onSalvo = { idCriado ->
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("novo_exercicio_id", idCriado)
                         navController.popBackStackSafely()
                     }
                 )
