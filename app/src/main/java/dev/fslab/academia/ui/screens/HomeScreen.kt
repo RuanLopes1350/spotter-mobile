@@ -98,7 +98,9 @@ fun HomeScreen(
     onToggleTheme: () -> Unit = {},
     onLogout: () -> Unit = {},
     onOpenExercicios: () -> Unit = {},
-    onOpenTreinos: () -> Unit = {}
+    onOpenTreinos: () -> Unit = {},
+    onRetomarSessao: () -> Unit = {},
+    temSessaoAtiva: Boolean = false
 ) {
     val colors = LocalAcademiaColors.current
     var navSelected by remember { mutableIntStateOf(0) }
@@ -318,6 +320,48 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Banner sessão em andamento ───────────────────────────
+            if (temSessaoAtiva) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colors.primary.copy(alpha = 0.12f))
+                        .border(1.dp, colors.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                        .clickable { onRetomarSessao() }
+                        .padding(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(colors.primary.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = "Retomar treino", tint = colors.primary, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "TREINO EM ANDAMENTO",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primary,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "Toque para retomar",
+                                fontSize = 13.sp,
+                                color = colors.textPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // ── Card do treino ───────────────────────────────────────
             Box(

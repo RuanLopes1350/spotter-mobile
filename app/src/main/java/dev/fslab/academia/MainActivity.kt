@@ -23,6 +23,7 @@ import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioCatalogoScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
+import dev.fslab.academia.ui.screens.aluno.SessaoAtivaScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
 import dev.fslab.academia.ui.screens.aluno.TreinosScreen
@@ -30,6 +31,8 @@ import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
+import dev.fslab.academia.ui.viewmodel.SessaoUiState
+import dev.fslab.academia.ui.viewmodel.SessaoViewModel
 import dev.fslab.academia.ui.viewmodel.ThemeMode
 import dev.fslab.academia.ui.viewmodel.ThemeViewModel
 
@@ -54,7 +57,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AcademiaApp(
     authViewModel: AuthViewModel,
-    themeViewModel: ThemeViewModel
+    themeViewModel: ThemeViewModel,
+    sessaoViewModel: SessaoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val themeMode by themeViewModel.themeMode.collectAsState()
     val systemDark = isSystemInDarkTheme()
@@ -66,6 +70,8 @@ fun AcademiaApp(
 
     val authState by authViewModel.authState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val sessaoState by sessaoViewModel.uiState.collectAsState()
+    val temSessaoAtiva = sessaoState is SessaoUiState.EmAndamento
 
     AcademiaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
@@ -76,9 +82,12 @@ fun AcademiaApp(
 
         LaunchedEffect(authState) {
             when (authState) {
-                is AuthState.Success -> navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                    launchSingleTop = true
+                is AuthState.Success -> {
+                    sessaoViewModel.verificarEmAndamento()
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
                 AuthState.Idle -> navController.navigate(Screen.Login.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
@@ -117,6 +126,10 @@ fun AcademiaApp(
                     },
                     onOpenTreinos = {
                         navController.navigateSafely(Screen.Treinos.route)
+                    },
+                    temSessaoAtiva = temSessaoAtiva,
+                    onRetomarSessao = {
+                        navController.navigateSafely(Screen.SessaoAtiva.retomar())
                     }
                 )
             }
@@ -209,7 +222,28 @@ fun AcademiaApp(
                     onEditar = { tId ->
                         navController.navigateSafely(Screen.TreinoEditar.comId(tId))
                     },
-                    onExcluido = { navController.popBackStackSafely() }
+                    onExcluido = { navController.popBackStackSafely() },
+                    onIniciarSessao = { tId ->
+                        navController.navigateSafely(Screen.SessaoAtiva.iniciar(tId))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.SessaoAtiva.route,
+                arguments = listOf(
+                    navArgument("treinoId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { entry ->
+                val treinoId = entry.arguments?.getString("treinoId")
+                SessaoAtivaScreen(
+                    treinoId = treinoId,
+                    onBack = { navController.popBackStackSafely() },
+                    viewModel = sessaoViewModel
                 )
             }
 
