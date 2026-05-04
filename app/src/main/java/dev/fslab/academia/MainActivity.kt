@@ -20,6 +20,7 @@ import dev.fslab.academia.navigation.navigateSafely
 import dev.fslab.academia.navigation.popBackStackSafely
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.ui.screens.HomeScreen
+import dev.fslab.academia.ui.screens.aluno.AparelhosScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioCatalogoScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
@@ -130,6 +131,9 @@ fun AcademiaApp(
                     temSessaoAtiva = temSessaoAtiva,
                     onRetomarSessao = {
                         navController.navigateSafely(Screen.SessaoAtiva.retomar())
+                    },
+                    onNavigateTab = { route ->
+                        navController.navigateSafely(route)
                     }
                 )
             }
@@ -150,6 +154,13 @@ fun AcademiaApp(
                     onCriar = {
                         navController.navigateSafely(Screen.ExercicioCriar.route)
                     }
+                )
+            }
+
+            composable(Screen.Aparelhos.route) {
+                AparelhosScreen(
+                    onBack = { navController.popBackStackSafely() },
+                    onNavigateTab = { route -> navController.navigateSafely(route) }
                 )
             }
 
