@@ -100,6 +100,7 @@ fun AcademiaApp(
             composable("home") {
                 HomeScreen(
                     nome = currentUser?.name.orEmpty(),
+                    fotoUrl = currentUser?.image,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = { isDarkTheme = !isDarkTheme },
                     onLogout = { authViewModel.logout() },

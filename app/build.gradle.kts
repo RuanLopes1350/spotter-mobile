@@ -114,6 +114,7 @@ dependencies {
 
     // Coil - carregamento assíncrono de imagens (avatares, etc.)
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("io.coil-kt:coil-svg:2.5.0")
 
     // Armazenamento seguro de credenciais (AES-256 + Android Keystore)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
