@@ -114,6 +114,7 @@ dependencies {
 
     // Coil - carregamento assíncrono de imagens (avatares, etc.)
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("io.coil-kt:coil-svg:2.5.0")
     // Coil GIF - decoders animados (GIF, WebP animado, HEIF animado)
     implementation("io.coil-kt:coil-gif:2.5.0")
 

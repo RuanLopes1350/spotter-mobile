@@ -25,25 +25,46 @@ object CookieManager {
     fun init(context: Context) {
         if (::_cookieJar.isInitialized) return
 
-        // 1. Cria (ou recupera) a MasterKey do Android Keystore
+        val sharedPrefsFile = "secure_cookies"
+
+        try {
+            val encryptedPrefs = createEncryptedPrefs(context, sharedPrefsFile)
+            _cookieJar = PersistentCookieJar(
+                SetCookieCache(),
+                SharedPrefsCookiePersistor(encryptedPrefs)
+            )
+        } catch (e: Exception) {
+            // Se falhar (comum AEADBadTagException), deleta o arquivo e tenta de novo
+            context.deleteSharedPreferences(sharedPrefsFile)
+            try {
+                val encryptedPrefs = createEncryptedPrefs(context, sharedPrefsFile)
+                _cookieJar = PersistentCookieJar(
+                    SetCookieCache(),
+                    SharedPrefsCookiePersistor(encryptedPrefs)
+                )
+            } catch (secondError: Exception) {
+                // Fallback final: usa SharedPreferences comum se a criptografia falhar totalmente no hardware
+                val normalPrefs = context.getSharedPreferences(sharedPrefsFile, Context.MODE_PRIVATE)
+                _cookieJar = PersistentCookieJar(
+                    SetCookieCache(),
+                    SharedPrefsCookiePersistor(normalPrefs)
+                )
+            }
+        }
+    }
+
+    private fun createEncryptedPrefs(context: Context, fileName: String): androidx.security.crypto.EncryptedSharedPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
 
-        // 2. Cria o SharedPreferences criptografado (AES-256-SIV para chaves, AES-256-GCM para valores)
-        val encryptedPrefs = EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
-            "secure_cookies",
+            fileName,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-
-        // 3. Monta o CookieJar com cache em memória + persistência criptografada
-        _cookieJar = PersistentCookieJar(
-            SetCookieCache(),                           // Cache em memória (sessão ativa)
-            SharedPrefsCookiePersistor(encryptedPrefs)   // Persistência criptografada em disco
-        )
+        ) as EncryptedSharedPreferences
     }
 
     /** Limpa todos os cookies — usar no logout. */

@@ -67,6 +67,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+import dev.fslab.academia.R
 import dev.fslab.academia.ui.components.AppNavigationBar
 import dev.fslab.academia.ui.components.MAIS_ROUTE
 import dev.fslab.academia.ui.components.MaisMenuBottomSheet
@@ -82,7 +87,7 @@ import java.util.Locale
 private data class DiaSemana(val abrev: String, val numero: Int, val hoje: Boolean = false)
 
 @RequiresApi(Build.VERSION_CODES.O)
-fun generateWeekDays(): List<DiaSemana> {
+private fun generateWeekDays(): List<DiaSemana> {
     val today = LocalDate.now()
     val days = mutableListOf<DiaSemana>()
     val formatter = DateTimeFormatter.ofPattern("EEE", Locale("pt", "BR"))
@@ -119,7 +124,10 @@ fun HomeScreen(
     temSessaoAtiva: Boolean = false
 ) {
     val colors = LocalAcademiaColors.current
+    val context = LocalContext.current
     var mostrarMaisMenu by remember { mutableStateOf(false) }
+    
+    val diasSemana = remember { generateWeekDays() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
