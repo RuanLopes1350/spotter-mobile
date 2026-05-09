@@ -37,12 +37,14 @@ import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
 import dev.fslab.academia.ui.screens.aluno.SessaoAtivaScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
-import dev.fslab.academia.ui.screens.aluno.TreinosScreen
+import dev.fslab.academia.ui.screens.HomeScreen
+import dev.fslab.academia.ui.screens.ProfileScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.screens.treinador.TreinadorHomeScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
+import dev.fslab.academia.ui.viewmodel.PerfilViewModel
 import dev.fslab.academia.ui.viewmodel.SessaoUiState
 import dev.fslab.academia.ui.viewmodel.SessaoViewModel
 import dev.fslab.academia.ui.viewmodel.ThemeMode
@@ -52,6 +54,8 @@ class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by viewModels()
     private val themeViewModel: ThemeViewModel by viewModels()
+    private val perfilViewModel: PerfilViewModel by viewModels()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +64,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             AcademiaApp(
                 authViewModel = authViewModel,
-                themeViewModel = themeViewModel
+                themeViewModel = themeViewModel,
+                perfilViewModel = perfilViewModel
             )
         }
     }
@@ -70,6 +75,7 @@ class MainActivity : ComponentActivity() {
 fun AcademiaApp(
     authViewModel: AuthViewModel,
     themeViewModel: ThemeViewModel,
+    perfilViewModel: PerfilViewModel,
     sessaoViewModel: SessaoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val themeMode by themeViewModel.themeMode.collectAsState()
@@ -242,22 +248,7 @@ fun AcademiaApp(
             }
 
             composable(Screen.Treinos.route) {
-                TreinosScreen(
-                    onBack = { navController.popBackStackSafely() },
-                    onNavigateTab = { route ->
-                        if (route == Screen.Home.route) {
-                            navController.popBackStackSafely()
-                        } else {
-                            navController.navigateSafely(route)
-                        }
-                    },
-                    onAbrirDetalhe = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
-                    },
-                    onCriar = {
-                        navController.navigateSafely(Screen.TreinoCriar.route)
-                    }
-                )
+                PlaceholderScreen("Meus Treinos", onBack = { navController.popBackStackSafely() })
             }
 
             composable(
@@ -397,10 +388,10 @@ fun AcademiaApp(
             }
 
             composable(Screen.Perfil.route) {
-                PlaceholderScreen(
-                    titulo = "Perfil",
-                    descricao = "Edição de perfil — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+                ProfileScreen(
+                    userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
+                    onBack = { navController.popBackStackSafely() },
+                    viewModel = perfilViewModel
                 )
             }
 
