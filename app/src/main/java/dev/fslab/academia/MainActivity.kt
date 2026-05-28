@@ -39,6 +39,8 @@ import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
 import dev.fslab.academia.ui.screens.auth.CadastroScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
+import dev.fslab.academia.ui.screens.chat.ChatDetailScreen
+import dev.fslab.academia.ui.screens.chat.ChatScreen
 import dev.fslab.academia.ui.screens.treinador.TreinadorHomeScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
@@ -204,7 +206,9 @@ fun AcademiaApp(
                     fotoUrl = currentUser?.image,
                     onOpenCliente = { _ -> },
                     onOpenClientes = { },
-                    onNavigateTab = { _ -> },
+                    onNavigateTab = { route ->
+                        navController.navigateSafely(route)
+                    },
                     onNotifications = { },
                     onLogout = { authViewModel.logout() }
                 )
@@ -431,17 +435,25 @@ fun AcademiaApp(
             }
 
             composable(Screen.Chat.route) {
-                PlaceholderScreen(
-                    titulo = "Chat",
-                    descricao = "Conversa com treinador — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+                ChatScreen(
+                    userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
+                    onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onOpenConversa = { conversaId ->
+                        navController.navigateSafely(Screen.ChatDetalhe.comId(conversaId))
+                    }
                 )
             }
 
-            composable(Screen.ChatDetalhe.route) {
-                PlaceholderScreen(
-                    titulo = "Conversa",
-                    descricao = "Detalhes da conversa — implementação futura",
+            composable(
+                route = Screen.ChatDetalhe.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val conversaId = entry.arguments?.getString("id").orEmpty()
+                ChatDetailScreen(
+                    conversaId = conversaId,
+                    userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
+                    title = "Conversa",
+                    showBack = true,
                     onBack = { navController.popBackStackSafely() }
                 )
             }
@@ -470,11 +482,30 @@ fun AcademiaApp(
                 )
             }
 
-            composable(Screen.TreinadorCriarTreino.route) {
-                PlaceholderScreen(
-                    titulo = "Criar Treino",
-                    descricao = "Prescrição de treino para aluno — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+            composable(Screen.TreinadorTreinos.route) {
+                dev.fslab.academia.ui.screens.treinador.TreinadorTreinosScreen(
+                    onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onAbrirDetalhe = { id ->
+                        navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                    },
+                    onCriar = {
+                        navController.navigateSafely(Screen.TreinoCriar.route)
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.TreinadorTreinoDetalhe.route,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                dev.fslab.academia.ui.screens.treinador.TreinadorTreinoDetalheScreen(
+                    treinoId = id,
+                    onBack = { navController.popBackStackSafely() },
+                    onEditar = { tId ->
+                        navController.navigateSafely(Screen.TreinoEditar.comId(tId))
+                    },
+                    onExcluido = { navController.popBackStackSafely() }
                 )
             }
         }

@@ -19,7 +19,6 @@ data class RegisterRequest(
     @SerializedName("password") val password: String,
     @SerializedName("confirmPassword") val confirmPassword: String? = null,
     @SerializedName("image") val image: String? = null,
-    @SerializedName("tipo") val tipo: String = "aluno",
     @SerializedName("callbackURL") val callbackUrl: String = "/"
 )
 
@@ -39,21 +38,16 @@ data class UserData(
     @SerializedName("name") val name: String,
     @SerializedName("email") val email: String,
     @SerializedName("image") val image: String? = null,
-    @SerializedName("tipo") val tipo: String? = null,
-    @SerializedName("isAdmin") val isAdmin: Boolean? = null,
-    @SerializedName("perfil") val perfil: com.google.gson.JsonObject? = null
+    @SerializedName("type_usuario_autenticado") val tipo: String? = null,
+    @SerializedName("isAdmin") val isAdmin: Boolean? = null
 )
 
 data class LoginResponse(
-    @SerializedName("error") val error: Boolean = false,
-    @SerializedName("message") val message: String? = null,
     @SerializedName("session") val session: SessionData? = null,
     @SerializedName("user") val user: UserData? = null
 )
 
 data class RegisterResponse(
-    @SerializedName("error") val error: Boolean = false,
-    @SerializedName("message") val message: String? = null,
     @SerializedName("session") val session: SessionData? = null,
     @SerializedName("user") val user: UserData? = null
 )
@@ -69,21 +63,22 @@ data class MeResponse(
 )
 
 fun UserData.toUser(): User {
-    val userTipo = when (tipo?.lowercase()) {
+    val tipoNormalizado = tipo?.trim()?.lowercase()
+    
+    val userTipo = when (tipoNormalizado) {
         "treinador" -> UserTipo.TREINADOR
-        else -> UserTipo.ALUNO
+        "aluno" -> UserTipo.ALUNO
+        else -> {
+            // Se tipo for nulo, tenta inferir pelo isAdmin (comum em treinadores)
+            if (isAdmin == true) UserTipo.TREINADOR else UserTipo.ALUNO
+        }
     }
-
-    // Tentar extrair a URL da foto do objeto de perfil enriquecido
-    val fotoPerfil = perfil?.get("url_foto")?.let {
-        if (!it.isJsonNull) it.asString else null
-    }
-
+    
     return User(
         id = id,
         name = name,
         email = email,
-        image = fotoPerfil ?: image ?: "",
+        image = image.orEmpty(),
         tipo = userTipo,
         isAdmin = isAdmin ?: false
     )

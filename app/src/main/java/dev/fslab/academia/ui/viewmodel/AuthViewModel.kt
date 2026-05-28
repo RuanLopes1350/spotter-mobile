@@ -7,6 +7,7 @@ import dev.fslab.academia.model.User
 import dev.fslab.academia.model.toUser
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.network.RetrofitClient
+import dev.fslab.academia.network.SessionStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +36,8 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = RetrofitClient.authApi.getSession()
-                val user = response.user?.toUser()
+                SessionStore.setToken(response.session?.token)
+                val user = fetchUser(response.user)
                 if (user != null) {
                     _currentUser.value = user
                     _authState.value = AuthState.Success(user)
@@ -62,7 +64,9 @@ class AuthViewModel : ViewModel() {
                     LoginRequest(email = email.trim(), password = password)
                 )
 
-                val user = response.user?.toUser()
+                SessionStore.setToken(response.session?.token)
+
+                val user = fetchUser(response.user)
                 if (user != null) {
                     _currentUser.value = user
                     _authState.value = AuthState.Success(user)
@@ -88,6 +92,7 @@ class AuthViewModel : ViewModel() {
                 // Ignora erro de rede no logout — limpa localmente de qualquer forma
             } finally {
                 CookieManager.clearCookies()      // Remove cookie do dispositivo
+                SessionStore.clear()
                 _currentUser.value = null
                 _authState.value = AuthState.Idle
             }
@@ -113,18 +118,12 @@ class AuthViewModel : ViewModel() {
             }
         }.getOrNull()?.takeIf { it.isNotBlank() }
     }
+
     private suspend fun fetchUser(fallback: dev.fslab.academia.model.UserData?): User? {
+        // Tenta obter o perfil detalhado que contém o 'type_usuario_autenticado'
+        // Adicionando um pequeno delay ou retry se necessário para garantir que o cookie/token foi processado
         val profile = runCatching { RetrofitClient.authApi.getProfile() }.getOrNull()
-        // Assuming getProfile now returns MeResponse (based on Updated upstream's MeResponse addition)
-        // If it still returns UserData, this logic needs adjustment. 
-        // Based on the conflict resolution in AuthModels, we use .success
-        val userData = if (profile != null && profile is dev.fslab.academia.model.MeResponse && profile.success) {
-            profile.data 
-        } else if (profile != null && profile is dev.fslab.academia.model.UserData) {
-            profile
-        } else {
-            fallback
-        }
+        val userData = profile?.data ?: fallback
         return userData?.toUser()
     }
 }
