@@ -110,6 +110,7 @@ fun SessaoAtivaScreen(
     viewModel: SessaoViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val prsBatidos by viewModel.prsBatidos.collectAsState()
 
     LaunchedEffect(treinoId) {
         if (treinoId != null) viewModel.iniciar(treinoId)
@@ -127,6 +128,7 @@ fun SessaoAtivaScreen(
         is SessaoUiState.Finalizada -> ResumoSessaoConteudo(
             sessao = state.sessao,
             resumo = state.resumo,
+            prsBatidos = prsBatidos,
             onVoltar = onBack
         )
         is SessaoUiState.Error -> ErroConteudo(
@@ -249,6 +251,18 @@ private fun ExecucaoSessao(
     val total = exerciciosOrdenados.size
     val totalSeries = sessao.exercicios.sumOf { it.template.series }
     val seriesConcluidas = sessao.exercicios.sumOf { ex -> ex.series.count { it.status == "CONCLUIDA" } }
+
+    val exerciciosComPr by remember(sessao, maxCargaPorExercicio) {
+        derivedStateOf {
+            sessao.exercicios.count { exData ->
+                val max = maxCargaPorExercicio[exData.exercicio.id] ?: return@count false
+                exData.series.any { serie ->
+                    serie.status == "CONCLUIDA" &&
+                        (serie.cargaUtilizada?.trim()?.toDoubleOrNull() ?: 0.0) > max
+                }
+            }
+        }
+    }
 
     LaunchedEffect(seriesState) {
         if (seriesState is SessaoSeriesUiState.Success) {
@@ -611,6 +625,7 @@ private fun ExecucaoSessao(
                         mostrarDialogFinalizar = false
                         statusLocais.values.forEach { s -> if (s.value == "PENDENTE") s.value = "PULADA" }
                         salvarSeriesExercicio(concluirExercicio = true)
+                        viewModel.registrarPrsBatidos(exerciciosComPr)
                         viewModel.finalizar(sessao.id)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = colors.textOnPrimary)
@@ -1177,6 +1192,7 @@ private fun ErroConteudo(message: String, onBack: () -> Unit, onRetry: () -> Uni
 private fun ResumoSessaoConteudo(
     sessao: SessaoData,
     resumo: SessaoResumoData,
+    prsBatidos: Int = 0,
     onVoltar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
@@ -1210,6 +1226,25 @@ private fun ResumoSessaoConteudo(
                     Text("Parabéns!", color = colors.primary, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                     Text(sessao.treinoNome, color = colors.textPrimary, style = MaterialTheme.typography.titleMedium)
                     Text("Treino finalizado com sucesso", color = colors.textSecondary, style = MaterialTheme.typography.bodyMedium)
+                    if (prsBatidos > 0) {
+                        Spacer(Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.featureOrange.copy(alpha = 0.15f))
+                                .border(1.dp, colors.featureOrange.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                if (prsBatidos == 1) "Novo recorde pessoal!" else "$prsBatidos novos recordes pessoais!",
+                                color = colors.featureOrange,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
 
