@@ -3,6 +3,7 @@ package dev.fslab.academia.ui.screens.aluno
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -400,17 +401,31 @@ private fun GraficoProgressao(
             }
             Spacer(Modifier.height(8.dp))
 
+            fun indiceMaisProximo(offsetX: Float, canvasWidth: Float): Int {
+                if (pontos.size <= 1) return 0
+                return pontos.indices.minByOrNull { i ->
+                    val px = i * canvasWidth / (pontos.size - 1)
+                    kotlin.math.abs(offsetX - px)
+                } ?: 0
+            }
+
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
                     .pointerInput(pontos) {
                         detectTapGestures { offset ->
+                            selectedIndex = indiceMaisProximo(offset.x, size.width.toFloat())
+                        }
+                    }
+                    .pointerInput(pontos) {
+                        detectHorizontalDragGestures { _, dragAmount ->
                             val w = size.width.toFloat()
-                            val idx = if (pontos.size > 1)
-                                ((offset.x / w) * (pontos.size - 1)).toInt().coerceIn(0, pontos.lastIndex)
-                            else 0
-                            selectedIndex = idx
+                            if (w > 0 && pontos.size > 1) {
+                                val step = w / (pontos.size - 1)
+                                val newX = (selectedIndex * step + dragAmount).coerceIn(0f, w)
+                                selectedIndex = indiceMaisProximo(newX, w)
+                            }
                         }
                     }
             ) {
