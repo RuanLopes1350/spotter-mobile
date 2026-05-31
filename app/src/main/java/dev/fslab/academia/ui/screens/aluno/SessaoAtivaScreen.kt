@@ -60,6 +60,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -109,6 +110,7 @@ fun SessaoAtivaScreen(
     viewModel: SessaoViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val prsBatidos by viewModel.prsBatidos.collectAsState()
 
     LaunchedEffect(treinoId) {
         if (treinoId != null) viewModel.iniciar(treinoId)
@@ -126,6 +128,7 @@ fun SessaoAtivaScreen(
         is SessaoUiState.Finalizada -> ResumoSessaoConteudo(
             sessao = state.sessao,
             resumo = state.resumo,
+            prsBatidos = prsBatidos,
             onVoltar = onBack
         )
         is SessaoUiState.Error -> ErroConteudo(
@@ -146,6 +149,7 @@ private fun ExecucaoSessao(
 ) {
     val colors = LocalAcademiaColors.current
     val seriesState by viewModel.seriesState.collectAsState()
+    val maxCargaPorExercicio by viewModel.maxCargaPorExercicio.collectAsState()
 
     val exerciciosOrdenados = remember(sessao.exercicios) {
         sessao.exercicios.sortedBy { it.ordem }
@@ -190,6 +194,7 @@ private fun ExecucaoSessao(
     }
 
     val eTempo = exercicioAtual.exercicio.tipo == TipoExercicio.TEMPO
+    val maxCargaHistorica: Double? = maxCargaPorExercicio[exercicioAtual.exercicio.id]
 
     val defaultReps = exercicioAtual.template.repeticoes?.split("-")?.firstOrNull()?.trim()
         ?.filter { it.isDigit() }?.toIntOrNull() ?: 0
@@ -238,8 +243,36 @@ private fun ExecucaoSessao(
     var mostrarDialogCancelar by remember { mutableStateOf(false) }
     var mostrarDialogFinalizar by remember { mutableStateOf(false) }
 
+    BackHandler(enabled = true) {
+        mostrarDialogCancelar = true
+    }
+
     val concluidos = exerciciosOrdenados.count { it.concluido }
     val total = exerciciosOrdenados.size
+    val totalSeries = sessao.exercicios.sumOf { ex ->
+        if (ex.id == exercicioAtual.id) seriesContagemLocal else ex.series.size.takeIf { it > 0 } ?: ex.template.series
+    }
+    val seriesConcluidas = sessao.exercicios.sumOf { ex ->
+        if (ex.id == exercicioAtual.id) {
+            (0 until seriesContagemLocal).count { i ->
+                statusLocais[serieIdPorIndice(i)]?.value == "CONCLUIDA"
+            }
+        } else {
+            ex.series.count { it.status == "CONCLUIDA" }
+        }
+    }
+
+    val exerciciosComPr by remember(sessao, maxCargaPorExercicio) {
+        derivedStateOf {
+            sessao.exercicios.count { exData ->
+                val max = maxCargaPorExercicio[exData.exercicio.id] ?: return@count false
+                exData.series.any { serie ->
+                    serie.status == "CONCLUIDA" &&
+                        (serie.cargaUtilizada?.trim()?.toDoubleOrNull() ?: 0.0) > max
+                }
+            }
+        }
+    }
 
     LaunchedEffect(seriesState) {
         if (seriesState is SessaoSeriesUiState.Success) {
@@ -310,14 +343,33 @@ private fun ExecucaoSessao(
                 .background(Brush.verticalGradient(listOf(colors.backgroundGradientStart, colors.backgroundGradientEnd)))
                 .padding(innerPadding)
         ) {
-            // Barra de progresso
-            LinearProgressIndicator(
-                progress = { if (total > 0) concluidos.toFloat() / total else 0f },
-                modifier = Modifier.fillMaxWidth().height(3.dp),
-                color = colors.primary,
-                trackColor = colors.lightGray,
-                strokeCap = StrokeCap.Round
-            )
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Exercício ${exercicioIndex + 1} de $total",
+                        color = colors.textSecondary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text(
+                        "$seriesConcluidas/$totalSeries séries",
+                        color = colors.primary,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { if (total > 0) concluidos.toFloat() / total else 0f },
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = colors.primary,
+                    trackColor = colors.lightGray,
+                    strokeCap = StrokeCap.Round
+                )
+            }
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -390,6 +442,12 @@ private fun ExecucaoSessao(
                                     carga = carga.value,
                                     status = status.value,
                                     timerAtivo = timerAtivo.value,
+                                    isPr = run {
+                                        if (status.value != "CONCLUIDA") return@run false
+                                        val cargaDouble = carga.value.trim().toDoubleOrNull() ?: return@run false
+                                        val max = maxCargaHistorica ?: return@run false
+                                        cargaDouble > max
+                                    },
                                     onAlterarMeta = { metaLocal.intValue = it },
                                     onIniciar = {
                                         timerAtivo.value = true
@@ -424,6 +482,12 @@ private fun ExecucaoSessao(
                                     reps = reps.intValue,
                                     carga = carga.value,
                                     status = status.value,
+                                    isPr = run {
+                                        if (status.value != "CONCLUIDA") return@run false
+                                        val cargaDouble = carga.value.trim().toDoubleOrNull() ?: return@run false
+                                        val max = maxCargaHistorica ?: return@run false
+                                        cargaDouble > max
+                                    },
                                     onRepsChange = { reps.intValue = it.coerceAtLeast(0) },
                                     onCargaChange = { carga.value = it },
                                     onMarcarConcluida = {
@@ -571,6 +635,7 @@ private fun ExecucaoSessao(
                         mostrarDialogFinalizar = false
                         statusLocais.values.forEach { s -> if (s.value == "PENDENTE") s.value = "PULADA" }
                         salvarSeriesExercicio(concluirExercicio = true)
+                        viewModel.registrarPrsBatidos(exerciciosComPr)
                         viewModel.finalizar(sessao.id)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = colors.textOnPrimary)
@@ -728,6 +793,7 @@ private fun SerieStepperRow(
     reps: Int,
     carga: String,
     status: String,
+    isPr: Boolean = false,
     onRepsChange: (Int) -> Unit,
     onCargaChange: (String) -> Unit,
     onMarcarConcluida: () -> Unit,
@@ -809,6 +875,21 @@ private fun SerieStepperRow(
                                 else -> colors.textSecondary
                             }
                         )
+                    }
+                    if (status == "CONCLUIDA" && isPr) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.featureOrange.copy(alpha = 0.18f))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                "PR",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = colors.featureOrange
+                            )
+                        }
                     }
                     if (!expandido && status != "PENDENTE") {
                         val info = when (status) {
@@ -1121,6 +1202,7 @@ private fun ErroConteudo(message: String, onBack: () -> Unit, onRetry: () -> Uni
 private fun ResumoSessaoConteudo(
     sessao: SessaoData,
     resumo: SessaoResumoData,
+    prsBatidos: Int = 0,
     onVoltar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
@@ -1154,6 +1236,25 @@ private fun ResumoSessaoConteudo(
                     Text("Parabéns!", color = colors.primary, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                     Text(sessao.treinoNome, color = colors.textPrimary, style = MaterialTheme.typography.titleMedium)
                     Text("Treino finalizado com sucesso", color = colors.textSecondary, style = MaterialTheme.typography.bodyMedium)
+                    if (prsBatidos > 0) {
+                        Spacer(Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.featureOrange.copy(alpha = 0.15f))
+                                .border(1.dp, colors.featureOrange.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                if (prsBatidos == 1) "Novo recorde pessoal!" else "$prsBatidos novos recordes pessoais!",
+                                color = colors.featureOrange,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1249,6 +1350,7 @@ private fun SerieTempoRow(
     carga: String,
     status: String,
     timerAtivo: Boolean,
+    isPr: Boolean = false,
     onAlterarMeta: (Int) -> Unit,
     onIniciar: () -> Unit,
     onParar: () -> Unit,
@@ -1349,6 +1451,21 @@ private fun SerieTempoRow(
                                 else -> if (timerAtivo) colors.primary else colors.textSecondary
                             }
                         )
+                    }
+                    if (status == "CONCLUIDA" && isPr) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.featureOrange.copy(alpha = 0.18f))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                "PR",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = colors.featureOrange
+                            )
+                        }
                     }
                     // Info compacta quando colapsado
                     if (!expandido && status != "PENDENTE") {
