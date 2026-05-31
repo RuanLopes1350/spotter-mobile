@@ -249,8 +249,18 @@ private fun ExecucaoSessao(
 
     val concluidos = exerciciosOrdenados.count { it.concluido }
     val total = exerciciosOrdenados.size
-    val totalSeries = sessao.exercicios.sumOf { it.template.series }
-    val seriesConcluidas = sessao.exercicios.sumOf { ex -> ex.series.count { it.status == "CONCLUIDA" } }
+    val totalSeries = sessao.exercicios.sumOf { ex ->
+        if (ex.id == exercicioAtual.id) seriesContagemLocal else ex.template.series
+    }
+    val seriesConcluidas = sessao.exercicios.sumOf { ex ->
+        if (ex.id == exercicioAtual.id) {
+            (0 until seriesContagemLocal).count { i ->
+                statusLocais[serieIdPorIndice(i)]?.value == "CONCLUIDA"
+            }
+        } else {
+            ex.series.count { it.status == "CONCLUIDA" }
+        }
+    }
 
     val exerciciosComPr by remember(sessao, maxCargaPorExercicio) {
         derivedStateOf {
