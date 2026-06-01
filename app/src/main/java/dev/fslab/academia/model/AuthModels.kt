@@ -83,10 +83,7 @@ fun UserData.toUser(): User {
     val userTipo = when (tipoNormalizado) {
         "treinador" -> UserTipo.TREINADOR
         "aluno" -> UserTipo.ALUNO
-        else -> {
-            // Se tipo for nulo, tenta inferir pelo isAdmin (comum em treinadores)
-            if (isAdmin == true) UserTipo.TREINADOR else UserTipo.ALUNO
-        }
+        else -> UserTipo.ALUNO
     }
     
     return User(

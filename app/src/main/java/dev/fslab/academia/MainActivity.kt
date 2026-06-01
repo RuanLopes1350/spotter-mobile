@@ -34,6 +34,8 @@ import dev.fslab.academia.ui.screens.PlaceholderScreen
 import dev.fslab.academia.ui.screens.aluno.AparelhosScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoProgressaoScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoScreen
+import dev.fslab.academia.ui.screens.aluno.SessaoDetalheScreen
+import dev.fslab.academia.ui.viewmodel.HistoricoViewModel
 import dev.fslab.academia.ui.screens.aluno.ExercicioCatalogoScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
@@ -51,7 +53,6 @@ import dev.fslab.academia.ui.viewmodel.AuthViewModel
 import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
 import dev.fslab.academia.ui.viewmodel.CadastroViewModel
 import dev.fslab.academia.ui.viewmodel.PerfilViewModel
-import dev.fslab.academia.ui.viewmodel.HistoricoViewModel
 import dev.fslab.academia.ui.viewmodel.SessaoUiState
 import dev.fslab.academia.ui.viewmodel.SessaoViewModel
 import dev.fslab.academia.ui.viewmodel.ThemeMode
@@ -426,6 +427,22 @@ fun AcademiaApp(
                             Screen.HistoricoProgressao.comId(exercicioId, exercicioNome)
                         )
                     },
+                    onAbrirSessao = { sessaoId ->
+                        navController.navigateSafely(Screen.SessaoDetalhe.comId(sessaoId))
+                    },
+                    viewModel = historicoViewModel
+                )
+            }
+
+            composable(
+                route = Screen.SessaoDetalhe.route,
+                arguments = listOf(navArgument("sessaoId") { type = NavType.StringType })
+            ) { entry ->
+                val sessaoId = entry.arguments?.getString("sessaoId").orEmpty()
+                val historicoViewModel: HistoricoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                SessaoDetalheScreen(
+                    sessaoId = sessaoId,
+                    onBack = { navController.popBackStackSafely() },
                     viewModel = historicoViewModel
                 )
             }
