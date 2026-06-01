@@ -22,6 +22,20 @@ data class RegisterRequest(
     @SerializedName("callbackURL") val callbackUrl: String = "/"
 )
 
+data class SocialIdToken(
+    @SerializedName("token") val token: String
+)
+
+data class SocialLoginRequest(
+    @SerializedName("provider") val provider: String = "google",
+    @SerializedName("callbackURL") val callbackUrl: String = "/",
+    @SerializedName("idToken") val idToken: SocialIdToken
+)
+
+data class FcmTokenRequest(
+    @SerializedName("fcm_token") val fcmToken: String
+)
+
 // ####################################################################################
 //                       MODELOS DE RESPOSTAS
 // ####################################################################################
@@ -39,7 +53,8 @@ data class UserData(
     @SerializedName("email") val email: String,
     @SerializedName("image") val image: String? = null,
     @SerializedName("tipo") val tipo: String? = null,
-    @SerializedName("isAdmin") val isAdmin: Boolean? = null
+    @SerializedName("isAdmin") val isAdmin: Boolean? = null,
+    @SerializedName("perfil") val perfil: com.google.gson.JsonElement? = null
 )
 
 data class LoginResponse(
@@ -77,6 +92,7 @@ fun UserData.toUser(): User {
         email = email,
         image = image.orEmpty(),
         tipo = userTipo,
-        isAdmin = isAdmin ?: false
+        isAdmin = isAdmin ?: false,
+        hasProfile = perfil != null && !perfil.isJsonNull
     )
 }

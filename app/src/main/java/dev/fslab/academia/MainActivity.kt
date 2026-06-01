@@ -1,9 +1,11 @@
 package dev.fslab.academia
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
@@ -24,8 +26,10 @@ import dev.fslab.academia.navigation.Screen
 import dev.fslab.academia.navigation.navigateSafely
 import dev.fslab.academia.navigation.popBackStackSafely
 import dev.fslab.academia.network.CookieManager
+import dev.fslab.academia.network.GoogleSignInHelper
 import dev.fslab.academia.model.UserTipo
 import dev.fslab.academia.ui.screens.HomeScreen
+import dev.fslab.academia.ui.screens.ProfileScreen
 import dev.fslab.academia.ui.screens.PlaceholderScreen
 import dev.fslab.academia.ui.screens.aluno.AparelhosScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoProgressaoScreen
@@ -38,7 +42,7 @@ import dev.fslab.academia.ui.screens.aluno.ExercicioFormScreen
 import dev.fslab.academia.ui.screens.aluno.SessaoAtivaScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoDetalheScreen
 import dev.fslab.academia.ui.screens.aluno.TreinoFormScreen
-import dev.fslab.academia.ui.screens.aluno.TreinosScreen
+import dev.fslab.academia.ui.screens.auth.CadastroScreen
 import dev.fslab.academia.ui.screens.auth.LoginScreen
 import dev.fslab.academia.ui.screens.chat.ChatDetailScreen
 import dev.fslab.academia.ui.screens.chat.ChatScreen
@@ -46,15 +50,34 @@ import dev.fslab.academia.ui.screens.treinador.TreinadorHomeScreen
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.viewmodel.AuthState
 import dev.fslab.academia.ui.viewmodel.AuthViewModel
+import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
+import dev.fslab.academia.ui.viewmodel.CadastroViewModel
+import dev.fslab.academia.ui.viewmodel.PerfilViewModel
 import dev.fslab.academia.ui.viewmodel.SessaoUiState
 import dev.fslab.academia.ui.viewmodel.SessaoViewModel
 import dev.fslab.academia.ui.viewmodel.ThemeMode
 import dev.fslab.academia.ui.viewmodel.ThemeViewModel
 
+
 class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by viewModels()
     private val themeViewModel: ThemeViewModel by viewModels()
+    private val perfilViewModel: PerfilViewModel by viewModels()
+    private val exercicioViewModel: ExercicioViewModel by viewModels()
+    private val cadastroViewModel: CadastroViewModel by viewModels()
+
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val idToken = GoogleSignInHelper.getIdTokenFromResult(result.data)
+            if (idToken != null) {
+                authViewModel.loginWithGoogle(idToken)
+            }
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,7 +86,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             AcademiaApp(
                 authViewModel = authViewModel,
-                themeViewModel = themeViewModel
+                themeViewModel = themeViewModel,
+                perfilViewModel = perfilViewModel,
+                exercicioViewModel = exercicioViewModel,
+                cadastroViewModel = cadastroViewModel,
+                onGoogleSignIn = {
+                    val intent = GoogleSignInHelper.getSignInIntent(this)
+                    googleSignInLauncher.launch(intent)
+                }
             )
         }
     }
@@ -73,6 +103,10 @@ class MainActivity : ComponentActivity() {
 fun AcademiaApp(
     authViewModel: AuthViewModel,
     themeViewModel: ThemeViewModel,
+    perfilViewModel: PerfilViewModel,
+    exercicioViewModel: ExercicioViewModel,
+    cadastroViewModel: CadastroViewModel,
+    onGoogleSignIn: () -> Unit = {},
     sessaoViewModel: SessaoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val themeMode by themeViewModel.themeMode.collectAsState()
@@ -85,8 +119,10 @@ fun AcademiaApp(
 
     val authState by authViewModel.authState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val exerciciosState by exercicioViewModel.uiState.collectAsState()
     val sessaoState by sessaoViewModel.uiState.collectAsState()
     val temSessaoAtiva = sessaoState is SessaoUiState.EmAndamento
+
 
     AcademiaTheme(darkTheme = isDarkTheme) {
         val navController = rememberNavController()
@@ -98,20 +134,35 @@ fun AcademiaApp(
         LaunchedEffect(authState) {
             when (val state = authState) {
                 is AuthState.Success -> {
-                    val targetRoute = if (state.user.tipo == UserTipo.TREINADOR) {
-                        Screen.TreinadorHome.route
+                    if (!state.user.hasProfile) {
+                        // Se logou mas não tem perfil (ex: primeiro login social), 
+                        // manda para a tela de completar cadastro pré-preenchido
+                        cadastroViewModel.preencherDadosSociais(state.user.name, state.user.email)
+                        
+                        navController.navigate(Screen.Cadastro.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     } else {
-                        Screen.Home.route
+                        val targetRoute = if (state.user.tipo == UserTipo.TREINADOR) {
+                            Screen.TreinadorHome.route
+                        } else {
+                            Screen.Home.route
+                        }
+                        navController.navigate(targetRoute) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
-                    navController.navigate(targetRoute) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                }
+
+                AuthState.Idle -> {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true } // Limpa absolutamente tudo
                         launchSingleTop = true
                     }
                 }
-                AuthState.Idle -> navController.navigate(Screen.Login.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                    launchSingleTop = true
-                }
+
                 else -> Unit
             }
         }
@@ -142,13 +193,33 @@ fun AcademiaApp(
                     onRegister = { navController.navigateSafely(Screen.Cadastro.route) },
                     onLogin = { email, password ->
                         authViewModel.loginUser(email = email, password = password)
-                    }
+                    },
+                    onGoogleLogin = onGoogleSignIn
+                )
+            }
+
+            composable(Screen.Cadastro.route) {
+                CadastroScreen(
+                    onBack = { navController.popBackStackSafely() },
+                    onSuccess = {
+                        val route = if (cadastroViewModel.tipo == UserTipo.TREINADOR) {
+                            Screen.TreinadorHome.route
+                        } else {
+                            Screen.Home.route
+                        }
+                        navController.navigateSafely(route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    viewModel = cadastroViewModel
                 )
             }
 
             composable(Screen.Home.route) {
+
                 HomeScreen(
                     nome = currentUser?.name?.substringBefore(" ").orEmpty(),
+                    fotoUrl = currentUser?.image,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = { themeViewModel.toggle() },
                     onLogout = { authViewModel.logout() },
@@ -171,6 +242,7 @@ fun AcademiaApp(
             composable(Screen.TreinadorHome.route) {
                 TreinadorHomeScreen(
                     nome = currentUser?.name?.substringBefore(" ").orEmpty(),
+                    fotoUrl = currentUser?.image,
                     onOpenCliente = { _ -> },
                     onOpenClientes = { },
                     onNavigateTab = { route ->
@@ -182,6 +254,10 @@ fun AcademiaApp(
             }
 
             composable(Screen.ExercicioCatalogo.route) {
+                LaunchedEffect(Unit) {
+                    exercicioViewModel.carregar()
+                }
+
                 ExercicioCatalogoScreen(
                     onBack = { navController.popBackStackSafely() },
                     onNavigateTab = { route ->
@@ -196,7 +272,8 @@ fun AcademiaApp(
                     },
                     onCriar = {
                         navController.navigateSafely(Screen.ExercicioCriar.route)
-                    }
+                    },
+                    viewModel = exercicioViewModel
                 )
             }
 
@@ -247,22 +324,7 @@ fun AcademiaApp(
             }
 
             composable(Screen.Treinos.route) {
-                TreinosScreen(
-                    onBack = { navController.popBackStackSafely() },
-                    onNavigateTab = { route ->
-                        if (route == Screen.Home.route) {
-                            navController.popBackStackSafely()
-                        } else {
-                            navController.navigateSafely(route)
-                        }
-                    },
-                    onAbrirDetalhe = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
-                    },
-                    onCriar = {
-                        navController.navigateSafely(Screen.TreinoCriar.route)
-                    }
-                )
+                PlaceholderScreen("Meus Treinos", onBack = { navController.popBackStackSafely() })
             }
 
             composable(
@@ -408,20 +470,14 @@ fun AcademiaApp(
                     viewModel = historicoViewModel
                 )
             }
-
-            composable(Screen.Cadastro.route) {
-                PlaceholderScreen(
-                    titulo = "Cadastro",
-                    descricao = "Criação de conta — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
-                )
-            }
-
             composable(Screen.Perfil.route) {
-                PlaceholderScreen(
-                    titulo = "Perfil",
-                    descricao = "Edição de perfil — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+                ProfileScreen(
+                    userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
+                    onBack = {
+                        navController.popBackStackSafely()
+                        authViewModel.checkSession()
+                    },
+                    viewModel = perfilViewModel
                 )
             }
 
