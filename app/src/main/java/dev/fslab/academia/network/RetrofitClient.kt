@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    const val BASE_URL = "http://192.168.0.134:1350/api/"
+    const val BASE_URL = "http://atividadesfisicas-api-qa.yuriprojects.dpdns.org/api/"
 
     private val gson = GsonBuilder().setLenient().create()
 
@@ -17,8 +17,18 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    private val originInterceptor = okhttp3.Interceptor { chain ->
+        val origin = BASE_URL.substringBefore("/api/")
+        chain.proceed(
+            chain.request().newBuilder()
+                .header("Origin", origin)
+                .build()
+        )
+    }
+
     private val okHttpClient = OkHttpClient.Builder()
         .cookieJar(CookieManager.cookieJar)
+        .addInterceptor(originInterceptor)
         .addInterceptor(loggingInterceptor)
         .followRedirects(true)
         .connectTimeout(30, TimeUnit.SECONDS)
