@@ -123,6 +123,10 @@ class AuthViewModel : ViewModel() {
     }
 
 
+    fun setError(message: String) {
+        _authState.value = AuthState.Error(message)
+    }
+
     // ── Logout ─────────────────────────────────────────────────────
     fun logout(context: Context? = null) {
         viewModelScope.launch {

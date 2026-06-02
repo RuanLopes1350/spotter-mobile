@@ -75,7 +75,11 @@ class MainActivity : ComponentActivity() {
             val idToken = GoogleSignInHelper.getIdTokenFromResult(result.data)
             if (idToken != null) {
                 authViewModel.loginWithGoogle(idToken)
+            } else {
+                authViewModel.setError("Falha ao obter credencial Google. Verifique a configuração do app.")
             }
+        } else if (result.resultCode != Activity.RESULT_CANCELED) {
+            authViewModel.setError("Login com Google cancelado ou falhou.")
         }
     }
 
