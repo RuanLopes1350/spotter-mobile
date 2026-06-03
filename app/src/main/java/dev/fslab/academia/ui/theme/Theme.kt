@@ -49,20 +49,20 @@ data class AcademiaColors(
 )
 
 /**
- * Cores para tema escuro — Fábrica 4 (Mapeado direto do Design System)
+ * Cores para tema escuro — Fábrica 4 (Mapeado direto do Figma)
  */
 val DarkAcademiaTesteColors = AcademiaColors(
     background = DarkBg,
     backgroundGradientStart = DarkBg,
     backgroundGradientEnd = DarkBgGradient,
-    surface = SurfaceDark,                // #1E1E1E - Cor exata dos cards do print
-    textPrimary = TextWhite,              // #F5F5F5 - Cor exata do texto
+    surface = SurfaceDark,
+    textPrimary = TextWhite,
     textSecondary = TextGraySecondary,
     textTertiary = DarkTextTertiary,
-    textOnPrimary = TextDarkOnPrimary,    // #000000 - Texto PRETO sobre o botão Verde Neon
+    textOnPrimary = TextDarkOnPrimary,
     textInput = TextWhite,
-    primary = PrimaryNeon,                // #5DD62C - O Verde Neon vibrante
-    primaryDark = SecondaryDarkGreen,     // Verde escuro de suporte
+    primary = PrimaryNeon,
+    primaryDark = SecondaryDarkGreen,
     iconGray = IconMuted,
     inputBorder = DarkInputBorder,
     mediumGray = TextGraySecondary,
@@ -73,50 +73,48 @@ val DarkAcademiaTesteColors = AcademiaColors(
     successBackground = SuccessBackground,
     successText = SuccessText,
     success = PrimaryNeon,
-    lightGray = DarkInputBg,              // fundo dos inputs no dark
-    featureBlue = Color(0xFF6B8AFF),
-    featureGreen = Color(0xFF4ADE80),
-    featureOrange = Color(0xFFFFBB5C),
+    lightGray = DarkInputBg,
+    featureBlue = CardBlue,
+    featureGreen = CardGreen,
+    featureOrange = CardOrange,
     featureCyan = Color(0xFF22D3EE),
-    featurePink = Color(0xFFF472B6),
-    featureRed = Color(0xFFFF6B81),
+    featurePink = CardPurple,
+    featureRed = ErrorButton,
     isDark = true
 )
 
 /**
- * Cores para tema claro — Mantidas baseadas na sua estrutura original
+ * Cores para tema claro — Paleta verde orgânica (#f0f7da / #77ab59)
  */
 val LightAcademiaColors = AcademiaColors(
-    background = PrimaryLightGreen,
-//    backgroundGradientStart = PrimaryLightGreen,
-    backgroundGradientStart = SecondaryDarkGreen,
-//    backgroundGradientEnd = SecondaryDarkGreen,
-    backgroundGradientEnd = PrimaryLightGreen,
+    background = LightBg,
+    backgroundGradientStart = LightBg,
+    backgroundGradientEnd = LightBg,
     surface = SurfaceWhite,
     textPrimary = TextPrimaryLight,
     textSecondary = TextSecondaryLight,
-    textTertiary = TextSecondaryLight,
-    textOnPrimary = TextDarkOnPrimary,
+    textTertiary = TextTertiaryLight,
+    textOnPrimary = LightTextOnPrimary,
     textInput = TextPrimaryLight,
-    primary = PrimaryNeon,
+    primary = LightPrimary,
     primaryDark = SecondaryDarkGreen,
-    iconGray = Color(0xFF5A8A48),
+    iconGray = TextSecondaryLight,
     inputBorder = InputBorderLight,
-    mediumGray = Color(0xFF9AB09A),
+    mediumGray = LightGray,
     errorBackground = Color(0xFFFFEBEE),
-    errorText = Color(0xFFC62828),
-    errorButton = Color(0xFFEF4444),
-    error = Color(0xFFDC2626),
-    successBackground = Color(0xFFE8F5E9),
-    successText = Color(0xFF2E7D32),
-    success = Color(0xFF10B981),
-    lightGray = LightGray,
-    featureBlue = Color(0xFF4A6CF7),
-    featureGreen = Color(0xFF16A34A),
-    featureOrange = Color(0xFFF59E0B),
+    errorText = Color(0xFFB00020),
+    errorButton = Color(0xFFB00020),
+    error = Color(0xFFB00020),
+    successBackground = Color(0xFFDCEFCC),
+    successText = Color(0xFF3D7A27),
+    success = LightPrimary,
+    lightGray = SurfaceLight,
+    featureBlue = CardBlue,
+    featureGreen = CardGreen,
+    featureOrange = CardOrange,
     featureCyan = Color(0xFF06B6D4),
-    featurePink = Color(0xFFEC4899),
-    featureRed = Color(0xFFEF4444),
+    featurePink = CardPurple,
+    featureRed = Color(0xFFB00020),
     isDark = false
 )
 
@@ -142,14 +140,14 @@ private val DarkColorScheme = darkColorScheme(
  * LightColorScheme - Paleta Material 3
  */
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryNeon,
+    primary = LightPrimary,
     secondary = SecondaryDarkGreen,
-    tertiary = PrimaryNeon,
-    background = PrimaryLightGreen,
+    tertiary = LightPrimary,
+    background = LightBg,
     surface = SurfaceWhite,
-    onPrimary = TextDarkOnPrimary,
-    onSecondary = TextPrimaryLight,
-    onTertiary = TextPrimaryLight,
+    onPrimary = LightTextOnPrimary,
+    onSecondary = SurfaceWhite,
+    onTertiary = LightTextOnPrimary,
     onBackground = TextPrimaryLight,
     onSurface = TextPrimaryLight
 )
