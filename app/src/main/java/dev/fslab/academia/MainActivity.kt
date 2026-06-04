@@ -254,6 +254,9 @@ fun AcademiaApp(
                     onIniciarTreino = { treinoId ->
                         navController.navigateSafely(Screen.SessaoAtiva.iniciar(treinoId))
                     },
+                    onAbrirTreinoDoDia = { treinoId ->
+                        navController.navigateSafely(Screen.TreinoDetalhe.comId(treinoId))
+                    },
                     homeViewModel = homeViewModel
                 )
             }

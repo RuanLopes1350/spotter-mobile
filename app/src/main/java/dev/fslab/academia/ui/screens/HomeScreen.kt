@@ -133,6 +133,7 @@ fun HomeScreen(
     onNavigateTab: (String) -> Unit = {},
     temSessaoAtiva: Boolean = false,
     onIniciarTreino: (String) -> Unit = {},
+    onAbrirTreinoDoDia: (String) -> Unit = {},
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
@@ -295,7 +296,7 @@ fun HomeScreen(
                     val isHoje = dia.hoje
                     val treinoHoje = if (isHoje) treinoDodia else null
                     val alturaCell = when {
-                        isHoje && treinoHoje != null -> 148.dp
+                        isHoje && treinoHoje != null -> 124.dp
                         isHoje -> 88.dp
                         else -> 80.dp
                     }
@@ -325,7 +326,7 @@ fun HomeScreen(
                                 )
                                 .then(
                                     if (isHoje && treinoHoje != null)
-                                        Modifier.clickable { onIniciarTreino(treinoHoje.id) }
+                                        Modifier.clickable { onAbrirTreinoDoDia(treinoHoje.id) }
                                     else Modifier
                                 )
                                 .padding(vertical = 10.dp, horizontal = 4.dp)
@@ -354,38 +355,12 @@ fun HomeScreen(
                             }
                             if (isHoje && treinoHoje != null) {
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(colors.textOnPrimary.copy(alpha = 0.2f))
+                                Icon(
+                                    Icons.Filled.FitnessCenter,
+                                    contentDescription = "Treino hoje",
+                                    tint = colors.textOnPrimary.copy(alpha = 0.85f),
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = treinoHoje.nome,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textOnPrimary,
-                                    maxLines = 2,
-                                    lineHeight = 12.sp,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.textOnPrimary.copy(alpha = 0.2f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Filled.PlayArrow,
-                                        contentDescription = "Iniciar treino",
-                                        tint = colors.textOnPrimary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
                             }
                             if (isHoje && homeUiState is HomeUiState.Loading) {
                                 Spacer(modifier = Modifier.height(8.dp))
