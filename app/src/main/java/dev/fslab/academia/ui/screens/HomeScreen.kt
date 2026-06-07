@@ -2,6 +2,12 @@ package dev.fslab.academia.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,55 +29,45 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Scale
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
 import dev.fslab.academia.R
 import dev.fslab.academia.ui.components.AppNavigationBar
 import dev.fslab.academia.ui.components.MAIS_ROUTE
@@ -79,13 +75,6 @@ import dev.fslab.academia.ui.components.MaisMenuBottomSheet
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.text.style.TextAlign
-import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.fslab.academia.model.DiaSemana as DiaSemanaEnum
-import dev.fslab.academia.model.TreinoData
-import dev.fslab.academia.ui.theme.AcademiaColors
 import dev.fslab.academia.ui.viewmodel.HomeUiState
 import dev.fslab.academia.ui.viewmodel.HomeViewModel
 import java.time.LocalDate
@@ -99,20 +88,29 @@ private data class DiaSemana(val abrev: String, val numero: Int, val hoje: Boole
 @RequiresApi(Build.VERSION_CODES.O)
 private fun generateWeekDays(): List<DiaSemana> {
     val today = LocalDate.now()
-    val days = mutableListOf<DiaSemana>()
     val formatter = DateTimeFormatter.ofPattern("EEE", Locale("pt", "BR"))
-    
-    // Gerar 6 dias (2 dias antes, hoje, 3 dias depois) para replicar o design do Figma
-    for (i in -2..3) {
+    return (-2..3).map { i ->
         val date = today.plusDays(i.toLong())
         val isToday = i == 0
         val abrev = if (isToday) "HOJE" else {
             val formatted = date.format(formatter).uppercase(Locale.getDefault())
             if (formatted.length > 3) formatted.substring(0, 3) else formatted
         }.replace(".", "")
-        days.add(DiaSemana(abrev, date.dayOfMonth, isToday))
+        DiaSemana(abrev, date.dayOfMonth, isToday)
     }
-    return days
+}
+
+@Composable
+private fun ShimmerBox(modifier: Modifier = Modifier, shape: RoundedCornerShape = RoundedCornerShape(8.dp)) {
+    val colors = LocalAcademiaColors.current
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse),
+        label = "shimmerAlpha"
+    )
+    Box(modifier = modifier.clip(shape).background(colors.surface.copy(alpha = alpha)))
 }
 
 // ─── HomeScreen ───────────────────────────────────────────────────────────────
@@ -140,26 +138,26 @@ fun HomeScreen(
     val context = LocalContext.current
     var mostrarMaisMenu by remember { mutableStateOf(false) }
     val homeUiState by homeViewModel.uiState.collectAsState()
+    val streakState by homeViewModel.streak.collectAsState()
 
     LaunchedEffect(Unit) {
-        homeViewModel.carregarTreinoDoDia()
+        homeViewModel.carregarDados()
     }
 
-    // Solicitar permissão de notificações no Android 13+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-        ) { /* ignorar resultado por enquanto */ }
-        
+        ) { }
         LaunchedEffect(Unit) {
             val permission = android.Manifest.permission.POST_NOTIFICATIONS
-            if (androidx.core.content.ContextCompat.checkSelfPermission(context, permission) 
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(context, permission)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
                 launcher.launch(permission)
             }
         }
     }
-    
+
     val diasSemana = remember { generateWeekDays() }
 
     Scaffold(
@@ -189,7 +187,7 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Header: avatar + saudação + streak ────────────────────────
+            // ── Header: avatar + saudação + streak ────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -225,54 +223,60 @@ fun HomeScreen(
                     Column {
                         Text(
                             text = "BEM-VINDO DE VOLTA",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.labelSmall,
                             color = colors.textSecondary,
                             letterSpacing = 0.3.sp
                         )
                         Text(
                             text = if (nome.isBlank()) "Olá!" else "Olá, $nome",
-                            fontSize = 20.sp,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
                     }
                 }
 
-                // Ações do header: streak + toggle + logout
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Badge streak
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(colors.surface.copy(alpha = 0.5f))
-                            .border(1.dp, colors.surface.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.LocalFireDepartment,
-                            contentDescription = "Streak",
-                            tint = colors.primary,
-                            modifier = Modifier.size(16.dp)
+                    // Badge streak — shimmer quando carregando
+                    if (streakState.dias == null) {
+                        ShimmerBox(
+                            modifier = Modifier.size(width = 80.dp, height = 32.dp),
+                            shape = RoundedCornerShape(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "15 Dias",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.primary
-                        )
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(colors.surface.copy(alpha = 0.5f))
+                                .border(1.dp, colors.surface.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = if ((streakState.dias ?: 0) > 0) colors.featureOrange else colors.textSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            val streakLabel = when {
+                                (streakState.dias ?: 0) == 1 -> "1 Dia"
+                                (streakState.dias ?: 0) > 1 -> "${streakState.dias} Dias"
+                                else -> "0 Dias"
+                            }
+                            Text(
+                                text = streakLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if ((streakState.dias ?: 0) > 0) colors.primary else colors.textSecondary
+                            )
+                        }
                     }
 
-                    // Logout
-                    IconButton(
-                        onClick = onLogout,
-                        modifier = Modifier.size(36.dp)
-                    ) {
+                    IconButton(onClick = onLogout, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = "Sair",
@@ -285,7 +289,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ── Calendário semanal ───────────────────────────────────
+            // ── Calendário semanal ────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -333,14 +337,14 @@ fun HomeScreen(
                         ) {
                             Text(
                                 text = dia.abrev,
-                                fontSize = 10.sp,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = if (isHoje) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isHoje) colors.textOnPrimary.copy(alpha = 0.8f) else colors.textSecondary
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "${dia.numero}",
-                                fontSize = if (isHoje) 24.sp else 18.sp,
+                                style = if (isHoje) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
                                 fontWeight = if (isHoje) FontWeight.ExtraBold else FontWeight.Bold,
                                 color = if (isHoje) colors.textOnPrimary else colors.textSecondary
                             )
@@ -375,20 +379,9 @@ fun HomeScreen(
                 }
             }
 
-            if (homeUiState is HomeUiState.SemTreino) {
-                Spacer(modifier = Modifier.height(8.dp))
-                androidx.compose.material3.Text(
-                    text = "Nenhum treino hoje",
-                    fontSize = 12.sp,
-                    color = colors.textSecondary,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Banner sessão em andamento ───────────────────────────
+            // ── Banner sessão em andamento ─────────────────────────────────────
             if (temSessaoAtiva) {
                 Box(
                     modifier = Modifier
@@ -407,20 +400,25 @@ fun HomeScreen(
                                 .background(colors.primary.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Retomar treino", tint = colors.primary, modifier = Modifier.size(22.dp))
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = "Retomar treino",
+                                tint = colors.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = "TREINO EM ANDAMENTO",
-                                fontSize = 10.sp,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.primary,
                                 letterSpacing = 1.sp
                             )
                             Text(
                                 text = "Toque para retomar",
-                                fontSize = 13.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = colors.textPrimary,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -430,136 +428,213 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // ── Card Treino de Hoje ────────────────────────────────────────────
+            when (val state = homeUiState) {
+                is HomeUiState.Loading -> {
+                    ShimmerBox(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                }
 
-            // ── Recado do Treinador ──────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Recado do Treinador",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary
-                )
-                Text(
-                    text = "VER MAIS",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primary,
-                    modifier = Modifier.clickable { }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface.copy(alpha = 0.5f))
-                    .border(1.dp, colors.inputBorder.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                    .padding(20.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Box(modifier = Modifier.size(48.dp)) {
+                is HomeUiState.ComTreino -> {
+                    val treino = state.treino
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(colors.lightGray)
-                            .border(1.dp, colors.inputBorder.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(colors.surface)
+                            .border(1.dp, colors.primary.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                            .padding(20.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "TREINO DE HOJE",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.primary,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = treino.nome,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textPrimary
+                                    )
+                                    if (!treino.descricao.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = treino.descricao,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.textSecondary,
+                                            maxLines = 2
+                                        )
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(colors.primary.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Filled.FitnessCenter,
+                                        contentDescription = null,
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { onAbrirTreinoDoDia(treino.id) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp, colors.primary.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Text(
+                                        text = "Ver Treino",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.primary
+                                    )
+                                }
+                                Button(
+                                    onClick = { onIniciarTreino(treino.id) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = colors.primary,
+                                        contentColor = colors.textOnPrimary
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Filled.PlayArrow,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Iniciar",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                is HomeUiState.SemTreino -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(colors.surface.copy(alpha = 0.5f))
+                            .border(1.dp, colors.surface.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Filled.Person,
-                            contentDescription = null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(32.dp)
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Filled.FitnessCenter,
+                                contentDescription = null,
+                                tint = colors.textSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Nenhum treino para hoje",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Aproveite para descansar ou criar um novo treino",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.textSecondary.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
+                }
+
+                is HomeUiState.Error -> {
                     Box(
                         modifier = Modifier
-                            .size(14.dp)
-                            .clip(CircleShape)
-                            .background(colors.primary)
-                            .border(2.dp, colors.surface, CircleShape)
-                            .align(Alignment.BottomEnd)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.errorBackground.copy(alpha = 0.3f))
+                            .padding(16.dp)
                     ) {
                         Text(
-                            text = "Treinador Marcos",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
+                            text = state.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Text(text = "10:30", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Fala Lucas! Hoje é dia de aumentar a carga no supino. Foca na descida controlada (3s). Bom treino! \uD83D\uDC4A",
-                        fontSize = 14.sp,
-                        color = colors.textPrimary.copy(alpha = 0.8f),
-                        lineHeight = 22.sp
-                    )
                 }
+
+                else -> Unit
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ── Quick Actions ────────────────────────────────────────
+            // ── Ações Rápidas ─────────────────────────────────────────────────
+            Text(
+                text = "Acesso Rápido",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                listOf(
-                    Triple(Icons.Filled.Scale, "Registrar Peso", colors.primary),
-                    Triple(Icons.Filled.WaterDrop, "Beber Água", colors.featureBlue) // Usando featureBlue
-                ).forEach { (icon, label, iconColor) ->
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(colors.surface.copy(alpha = 0.5f))
-                            .border(1.dp, colors.inputBorder.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                            .clickable { }
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(iconColor.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                icon,
-                                contentDescription = null,
-                                tint = iconColor,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = label,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textPrimary.copy(alpha = 0.8f)
-                        )
-                    }
-                }
+                QuickActionCard(
+                    icon = Icons.Filled.History,
+                    label = "Histórico",
+                    iconColor = colors.featureBlue,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigateTab("historico") }
+                )
+                QuickActionCard(
+                    icon = Icons.Filled.FitnessCenter,
+                    label = "Exercícios",
+                    iconColor = colors.featureGreen,
+                    modifier = Modifier.weight(1f),
+                    onClick = onOpenExercicios
+                )
+                QuickActionCard(
+                    icon = Icons.Filled.Chat,
+                    label = "Chat",
+                    iconColor = colors.featureCyan,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigateTab("chat") }
+                )
             }
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -570,6 +645,49 @@ fun HomeScreen(
         MaisMenuBottomSheet(
             onDismiss = { mostrarMaisMenu = false },
             onNavegar = { route -> onNavigateTab(route) }
+        )
+    }
+}
+
+@Composable
+private fun QuickActionCard(
+    icon: ImageVector,
+    label: String,
+    iconColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val colors = LocalAcademiaColors.current
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.surface.copy(alpha = 0.5f))
+            .border(1.dp, colors.surface.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconColor.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary.copy(alpha = 0.8f),
+            textAlign = TextAlign.Center
         )
     }
 }
