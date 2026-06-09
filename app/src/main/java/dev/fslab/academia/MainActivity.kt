@@ -672,7 +672,8 @@ fun AcademiaApp(
                     },
                     onAbrirTreino = { treinoId ->
                         navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(treinoId))
-                    }
+                    },
+                    onDesvinculado = { navController.popBackStackSafely() }
                 )
             }
 

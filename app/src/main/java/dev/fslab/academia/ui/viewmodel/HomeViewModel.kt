@@ -20,7 +20,7 @@ sealed interface AlunoVinculoState {
     data object Loading : AlunoVinculoState
     data object SemTreinador : AlunoVinculoState
     data class SolicitacaoPendente(val treinadorNome: String) : AlunoVinculoState
-    data class ComTreinador(val treinadorId: String) : AlunoVinculoState
+    data class ComTreinador(val treinadorId: String, val treinadorNome: String) : AlunoVinculoState
 }
 
 sealed interface HomeUiState {
@@ -44,6 +44,9 @@ class HomeViewModel : ViewModel() {
 
     private val _vinculoState = MutableStateFlow<AlunoVinculoState>(AlunoVinculoState.Loading)
     val vinculoState: StateFlow<AlunoVinculoState> = _vinculoState.asStateFlow()
+
+    private val _desvinculando = MutableStateFlow(false)
+    val desvinculando: StateFlow<Boolean> = _desvinculando.asStateFlow()
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun carregarDados() {
@@ -96,12 +99,28 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    fun desvincularTreinador() {
+        viewModelScope.launch {
+            _desvinculando.value = true
+            try {
+                RetrofitClient.profileApi.desvincularTreinador()
+                _vinculoState.value = AlunoVinculoState.SemTreinador
+            } catch (_: Exception) {
+            } finally {
+                _desvinculando.value = false
+            }
+        }
+    }
+
     private suspend fun carregarVinculo() {
         try {
             val perfil = RetrofitClient.profileApi.getAlunoProfile()
             val treinadorId = perfil.data.treinadorId
             if (treinadorId != null) {
-                _vinculoState.value = AlunoVinculoState.ComTreinador(treinadorId)
+                val treinadorNome = try {
+                    RetrofitClient.treinadorApi.getTreinadorById(treinadorId).data?.nome ?: "Treinador"
+                } catch (_: Exception) { "Treinador" }
+                _vinculoState.value = AlunoVinculoState.ComTreinador(treinadorId, treinadorNome)
                 return
             }
             try {
