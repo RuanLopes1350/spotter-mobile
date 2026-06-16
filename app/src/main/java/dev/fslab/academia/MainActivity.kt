@@ -147,14 +147,10 @@ fun AcademiaApp(
             when (val state = authState) {
                 is AuthState.Success -> {
                     if (!state.user.hasProfile) {
-                        // Se logou mas não tem perfil (ex: primeiro login social), 
-                        // manda para a tela de completar cadastro pré-preenchido
+                        // Usuário autenticado mas sem perfil (ex: primeiro login social).
+                        // Mantém Login na pilha para que o botão voltar funcione.
                         cadastroViewModel.preencherDadosSociais(state.user.name, state.user.email)
-                        
-                        navController.navigate(Screen.Cadastro.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                        navController.navigateSafely(Screen.Cadastro.route)
                     } else {
                         val targetRoute = if (state.user.tipo == UserTipo.TREINADOR) {
                             Screen.TreinadorHome.route
@@ -270,7 +266,19 @@ fun AcademiaApp(
 
             composable(Screen.Cadastro.route) {
                 CadastroScreen(
-                    onBack = { navController.popBackStackSafely() },
+                    onBack = {
+                        if (navController.previousBackStackEntry != null) {
+                            navController.popBackStackSafely()
+                        } else {
+                            // Pilha vazia (redirecionado via auth sem Login no back stack).
+                            // Faz logout e vai para Login explicitamente.
+                            authViewModel.logout()
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     onSuccess = {
                         val route = if (cadastroViewModel.tipo == UserTipo.TREINADOR) {
                             Screen.TreinadorHome.route
