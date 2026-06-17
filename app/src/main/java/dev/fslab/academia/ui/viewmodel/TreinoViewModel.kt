@@ -93,10 +93,17 @@ data class TreinoFormItemRascunho(
 )
 
 data class TreinoFormRascunho(
+    val treinoId: String? = null,
+    val ativo: Boolean = false,
     val nome: String = "",
     val descricao: String = "",
+    val descricaoOriginal: String? = null,
+    val ordemAutomatica: Int? = null,
+    val ordemOriginal: Int? = null,
     val dias: Set<DiaSemana> = emptySet(),
+    val diasOriginal: List<DiaSemana>? = null,
     val itens: List<TreinoFormItemRascunho> = emptyList(),
+    val idsOriginais: Set<String> = emptySet(),
     val formularioInicializado: Boolean = false
 )
 

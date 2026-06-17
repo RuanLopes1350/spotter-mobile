@@ -121,18 +121,31 @@ fun TreinoFormScreen(
     val detalheState by viewModel.detalheState.collectAsState()
     val salvarState by viewModel.salvarState.collectAsState()
 
-    val rascunho = if (!ehEdicao) viewModel.formRascunho.value else TreinoFormRascunho()
+    // Rascunho válido = mesmo treino (ou ambos criação) e já preenchido.
+    // Permite restaurar estado ao voltar de subfluxo (criar exercício), em criação E edição.
+    val rascunho = viewModel.formRascunho.value
+    val temRascunho = rascunho.ativo && rascunho.treinoId == treinoId
 
-    var nome by remember { mutableStateOf(rascunho.nome) }
-    var descricao by remember { mutableStateOf(rascunho.descricao) }
-    var descricaoOriginal by remember { mutableStateOf<String?>(null) }
-    var ordemAutomatica by remember { mutableStateOf<Int?>(null) }
-    var ordemOriginal by remember { mutableStateOf<Int?>(null) }
-    var dias by remember { mutableStateOf(if (!ehEdicao) rascunho.dias else emptySet<DiaSemana>()) }
-    var diasOriginal by remember { mutableStateOf<List<DiaSemana>?>(null) }
+    var nome by remember { mutableStateOf(if (temRascunho) rascunho.nome else "") }
+    var descricao by remember { mutableStateOf(if (temRascunho) rascunho.descricao else "") }
+    var descricaoOriginal by remember {
+        mutableStateOf(if (temRascunho) rascunho.descricaoOriginal else null)
+    }
+    var ordemAutomatica by remember {
+        mutableStateOf(if (temRascunho) rascunho.ordemAutomatica else null)
+    }
+    var ordemOriginal by remember {
+        mutableStateOf(if (temRascunho) rascunho.ordemOriginal else null)
+    }
+    var dias by remember {
+        mutableStateOf(if (temRascunho) rascunho.dias else emptySet<DiaSemana>())
+    }
+    var diasOriginal by remember {
+        mutableStateOf(if (temRascunho) rascunho.diasOriginal else null)
+    }
     var itens by remember {
         mutableStateOf(
-            if (!ehEdicao) rascunho.itens.map { r ->
+            if (temRascunho) rascunho.itens.map { r ->
                 ItemForm(
                     vinculoId = r.vinculoId,
                     exercicioId = r.exercicioId,
@@ -157,9 +170,12 @@ fun TreinoFormScreen(
             } else emptyList<ItemForm>()
         )
     }
-    var idsOriginais by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var idsOriginais by remember {
+        mutableStateOf(if (temRascunho) rascunho.idsOriginais else emptySet<String>())
+    }
+    // Em criação sem rascunho: já inicializado. Em edição sem rascunho: aguarda carregar do servidor.
     var formularioInicializado by remember {
-        mutableStateOf(if (!ehEdicao) rascunho.formularioInicializado else false)
+        mutableStateOf(if (temRascunho) rascunho.formularioInicializado else !ehEdicao)
     }
 
     var nomeErro by remember { mutableStateOf<String?>(null) }
@@ -196,7 +212,8 @@ fun TreinoFormScreen(
     LaunchedEffect(Unit) { viewModel.resetSalvar() }
 
     LaunchedEffect(treinoId) {
-        if (ehEdicao) viewModel.carregarDetalhe(treinoId!!)
+        // Só busca do servidor se ainda não há dados (evita sobrescrever edições restauradas do rascunho)
+        if (ehEdicao && !formularioInicializado) viewModel.carregarDetalhe(treinoId!!)
     }
 
     LaunchedEffect(detalheState) {
@@ -243,40 +260,47 @@ fun TreinoFormScreen(
         }
     }
 
+    // Salva rascunho sincronicamente a cada recomposição (criação E edição),
+    // garantindo que o estado atual sobreviva à navegação para subfluxos.
     SideEffect {
-        if (!ehEdicao) {
-            viewModel.salvarRascunho(
-                TreinoFormRascunho(
-                    nome = nome,
-                    descricao = descricao,
-                    dias = dias,
-                    itens = itens.map { item ->
-                        TreinoFormItemRascunho(
-                            vinculoId = item.vinculoId,
-                            exercicioId = item.exercicioId,
-                            exercicioNome = item.exercicioNome,
-                            exercicioDescricao = item.exercicioDescricao,
-                            tipoExercicio = item.tipoExercicio,
-                            series = item.series,
-                            repeticoes = item.repeticoes,
-                            duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
-                            distanciaSugeridaMetros = item.distanciaSugeridaMetros,
-                            cargaSugerida = item.cargaSugerida,
-                            tempoDescansoSegundos = item.tempoDescansoSegundos,
-                            ordemExecucao = item.ordemExecucao,
-                            originalSeries = item.originalSeries,
-                            originalRepeticoes = item.originalRepeticoes,
-                            originalDuracao = item.originalDuracao,
-                            originalDistancia = item.originalDistancia,
-                            originalCarga = item.originalCarga,
-                            originalTempoDescanso = item.originalTempoDescanso,
-                            originalOrdem = item.originalOrdem
-                        )
-                    },
-                    formularioInicializado = formularioInicializado
-                )
+        viewModel.salvarRascunho(
+            TreinoFormRascunho(
+                treinoId = treinoId,
+                ativo = true,
+                nome = nome,
+                descricao = descricao,
+                descricaoOriginal = descricaoOriginal,
+                ordemAutomatica = ordemAutomatica,
+                ordemOriginal = ordemOriginal,
+                dias = dias,
+                diasOriginal = diasOriginal,
+                itens = itens.map { item ->
+                    TreinoFormItemRascunho(
+                        vinculoId = item.vinculoId,
+                        exercicioId = item.exercicioId,
+                        exercicioNome = item.exercicioNome,
+                        exercicioDescricao = item.exercicioDescricao,
+                        tipoExercicio = item.tipoExercicio,
+                        series = item.series,
+                        repeticoes = item.repeticoes,
+                        duracaoSugeridaSegundos = item.duracaoSugeridaSegundos,
+                        distanciaSugeridaMetros = item.distanciaSugeridaMetros,
+                        cargaSugerida = item.cargaSugerida,
+                        tempoDescansoSegundos = item.tempoDescansoSegundos,
+                        ordemExecucao = item.ordemExecucao,
+                        originalSeries = item.originalSeries,
+                        originalRepeticoes = item.originalRepeticoes,
+                        originalDuracao = item.originalDuracao,
+                        originalDistancia = item.originalDistancia,
+                        originalCarga = item.originalCarga,
+                        originalTempoDescanso = item.originalTempoDescanso,
+                        originalOrdem = item.originalOrdem
+                    )
+                },
+                idsOriginais = idsOriginais,
+                formularioInicializado = formularioInicializado
             )
-        }
+        )
     }
 
     LaunchedEffect(salvarState) {
@@ -284,7 +308,7 @@ fun TreinoFormScreen(
             is TreinoSalvarUiState.Success -> {
                 val id = s.treino.id
                 viewModel.resetSalvar()
-                if (!ehEdicao) viewModel.limparRascunho()
+                viewModel.limparRascunho()
                 onSalvo(id)
             }
             is TreinoSalvarUiState.Error -> {
