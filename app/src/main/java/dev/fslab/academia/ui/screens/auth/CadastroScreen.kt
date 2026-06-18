@@ -73,6 +73,7 @@ import dev.fslab.academia.model.AcademiaData
 import dev.fslab.academia.model.Genero
 import dev.fslab.academia.model.UserTipo
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
 import dev.fslab.academia.ui.viewmodel.CadastroUiState
 import dev.fslab.academia.ui.viewmodel.CadastroViewModel
 import java.time.Instant
@@ -164,10 +165,16 @@ fun CadastroScreen(
 @Composable
 fun StepConta(viewModel: CadastroViewModel) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = dimens.screenPaddingH, vertical = dimens.screenPaddingV)
+            .verticalScroll(rememberScrollState())
+    ) {
         Text("Primeiro, os dados da sua conta", color = colors.textSecondary, fontSize = 14.sp)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(dimens.spaceXl))
 
         CadastroField("Nome completo", viewModel.nome, { viewModel.nome = it }, Icons.Default.Person)
         CadastroField("E-mail", viewModel.email, { viewModel.email = it }, Icons.Default.Email, enabled = !viewModel.isSocial)
@@ -184,13 +191,13 @@ fun StepConta(viewModel: CadastroViewModel) {
             UserTypeButton("TREINADOR", viewModel.tipo == UserTipo.TREINADOR, { viewModel.tipo = UserTipo.TREINADOR }, Modifier.weight(1f))
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(dimens.spaceXxl))
         Button(
             onClick = {
                 viewModel.avancarParaPerfil()
             },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(dimens.buttonHeight),
+            shape = RoundedCornerShape(dimens.cornerRadius),
             colors = ButtonDefaults.buttonColors(containerColor = colors.primary, contentColor = Color.Black)
         ) {
             Text("PRÓXIMO PASSO", fontWeight = FontWeight.ExtraBold)
