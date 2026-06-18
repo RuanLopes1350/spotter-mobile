@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.treinador
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +64,7 @@ import dev.fslab.academia.ui.components.SecaoEvolucaoPeriodo
 import dev.fslab.academia.ui.components.StatsSection
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.AlunoEstatisticasUiState
 import dev.fslab.academia.ui.viewmodel.DesvincularAlunoState
 import dev.fslab.academia.ui.viewmodel.PeriodoEstatisticasAluno
@@ -135,7 +137,8 @@ fun TreinadorAlunoDetalheScreen(
             )
         }
     ) { innerPadding ->
-        when (val state = uiState) {
+        Crossfade(targetState = uiState, animationSpec = Motion.contentSpec(), label = "alunoDetalhe") { state ->
+        when (state) {
             is TreinadorAlunoDetalheUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Carregando perfil...", color = colors.textSecondary)
@@ -167,6 +170,7 @@ fun TreinadorAlunoDetalheScreen(
                 )
             }
             else -> Unit
+        }
         }
     }
 

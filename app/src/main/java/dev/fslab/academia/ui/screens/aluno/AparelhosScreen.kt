@@ -158,7 +158,9 @@ fun AparelhosScreen(
                             contentPadding = PaddingValues(bottom = 16.dp)
                         ) {
                             items(state.aparelhos, key = { it.id }) { aparelho ->
-                                AparelhoCard(aparelho)
+                                Box(Modifier.animateItem()) {
+                                    AparelhoCard(aparelho)
+                                }
                             }
                         }
                     }

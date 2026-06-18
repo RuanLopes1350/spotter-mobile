@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.aluno
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +65,7 @@ import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.AnimacaoPlayer
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.ExercicioDeletarUiState
 import dev.fslab.academia.ui.viewmodel.ExercicioDetalheUiState
 import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
@@ -144,7 +146,8 @@ fun ExercicioDetalheScreen(
                 )
                 .padding(innerPadding)
         ) {
-            when (val s = detalheState) {
+            Crossfade(targetState = detalheState, animationSpec = Motion.contentSpec(), label = "exercicioDetalhe") { s ->
+            when (s) {
                 ExercicioDetalheUiState.Idle, ExercicioDetalheUiState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = colors.primary)
@@ -187,6 +190,7 @@ fun ExercicioDetalheScreen(
                         onExcluir = { mostrarDialogoExcluir = true }
                     )
                 }
+            }
             }
         }
     }

@@ -221,10 +221,12 @@ private fun TreinadorChatLista(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(listState.clientes, key = { it.alunoId }) { cliente ->
-                        ConversaClienteItem(
-                            cliente = cliente,
-                            onAbrir = onAbrir
-                        )
+                        Box(Modifier.animateItem()) {
+                            ConversaClienteItem(
+                                cliente = cliente,
+                                onAbrir = onAbrir
+                            )
+                        }
                     }
                 }
             }

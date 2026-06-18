@@ -84,6 +84,8 @@ import dev.fslab.academia.ui.components.MusculoSelectionBottomSheet
 import dev.fslab.academia.ui.components.alunoNavItems
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.pressScale
+import dev.fslab.academia.ui.util.rememberInteractionSource
 import dev.fslab.academia.ui.viewmodel.ExercicioFiltros
 import dev.fslab.academia.ui.viewmodel.ExercicioListUiState
 import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
@@ -260,10 +262,12 @@ fun ExercicioCatalogoScreen(
                             }
                         }
                         items(state.exercicios, key = { it.id }) { exercicio ->
-                            ExercicioCard(
-                                exercicio = exercicio,
-                                onClick = { onAbrirDetalhe(exercicio.id) }
-                            )
+                            Box(Modifier.animateItem()) {
+                                ExercicioCard(
+                                    exercicio = exercicio,
+                                    onClick = { onAbrirDetalhe(exercicio.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -460,9 +464,13 @@ private fun ExercicioCard(
     val dimens = LocalDimens.current
     val descricao = exercicio.descricao?.takeIf { it.isNotBlank() } ?: "Sem descrição cadastrada"
     val primarios = exercicio.musculos.count { it.tipoAtivacao == "PRIMARIO" }
+    val interacao = rememberInteractionSource()
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale(interacao)
+            .clickable(interactionSource = interacao, indication = null, onClick = onClick),
         colors = CardDefaults.elevatedCardColors(
             containerColor = colors.surface,
             contentColor = colors.textPrimary

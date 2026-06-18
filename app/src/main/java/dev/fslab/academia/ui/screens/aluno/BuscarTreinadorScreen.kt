@@ -143,10 +143,12 @@ fun BuscarTreinadorScreen(
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(state.treinadores, key = { it.id }) { treinador ->
-                                TreinadorCard(
-                                    treinador = treinador,
-                                    onClick = { onAbrirPerfil(treinador.id) }
-                                )
+                                Box(Modifier.animateItem()) {
+                                    TreinadorCard(
+                                        treinador = treinador,
+                                        onClick = { onAbrirPerfil(treinador.id) }
+                                    )
+                                }
                             }
                             item { Spacer(Modifier.height(16.dp)) }
                         }

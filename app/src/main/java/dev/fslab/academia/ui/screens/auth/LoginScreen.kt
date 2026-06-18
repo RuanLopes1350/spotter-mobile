@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.auth
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import dev.fslab.academia.ui.theme.AcademiaTheme
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 
 @Composable
 fun LoginScreen(
@@ -252,7 +254,9 @@ fun LoginScreen(
 
             // ─── Formulário ──────────────────────────────────────────
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(Motion.sizeSpec()),
                 verticalArrangement = Arrangement.spacedBy(dimens.spaceMd)
             ) {
                 // Campo E-MAIL

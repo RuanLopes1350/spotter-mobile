@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,6 +50,7 @@ import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.AcademiaColors
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.HistoricoViewModel
 import dev.fslab.academia.ui.viewmodel.SessaoDetalheUiState
 import java.time.Instant
@@ -82,7 +84,8 @@ fun SessaoDetalheScreen(
             )
         }
     ) { padding ->
-        when (val s = state) {
+        Crossfade(targetState = state, animationSpec = Motion.contentSpec(), label = "sessaoDetalhe") { s ->
+        when (s) {
             is SessaoDetalheUiState.Idle, SessaoDetalheUiState.Loading -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = colors.primary)
@@ -103,6 +106,7 @@ fun SessaoDetalheScreen(
             is SessaoDetalheUiState.Success -> {
                 SessaoDetalheConteudo(sessao = s.sessao, colors = colors, padding = padding)
             }
+        }
         }
     }
 }

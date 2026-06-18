@@ -1,6 +1,7 @@
 package dev.fslab.academia.ui.screens.treinador
 
 import android.widget.Toast
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +66,7 @@ import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.TreinadorSelecaoAlunoBottomSheet
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoDetalheUiState
 import dev.fslab.academia.ui.viewmodel.TreinoDuplicarUiState
@@ -144,7 +146,8 @@ fun TreinadorTreinoDetalheScreen(
                 )
                 .padding(innerPadding)
         ) {
-            when (val s = detalheState) {
+            Crossfade(targetState = detalheState, animationSpec = Motion.contentSpec(), label = "treinadorTreinoDetalhe") { s ->
+            when (s) {
                 TreinoDetalheUiState.Idle, TreinoDetalheUiState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = colors.primary)
@@ -187,6 +190,7 @@ fun TreinadorTreinoDetalheScreen(
                         onDuplicarClick = { mostrarBottomSheetDuplicar = true }
                     )
                 }
+            }
             }
         }
     }

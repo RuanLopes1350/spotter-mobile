@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.aluno
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +63,7 @@ import dev.fslab.academia.model.TreinoExercicioDetalheData
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
 import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
 import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoDetalheUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
@@ -122,7 +124,8 @@ fun TreinoDetalheScreen(
                 )
                 .padding(innerPadding)
         ) {
-            when (val s = detalheState) {
+            Crossfade(targetState = detalheState, animationSpec = Motion.contentSpec(), label = "treinoDetalhe") { s ->
+            when (s) {
                 TreinoDetalheUiState.Idle, TreinoDetalheUiState.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = colors.primary)
@@ -165,6 +168,7 @@ fun TreinoDetalheScreen(
                         onIniciarSessao = { onIniciarSessao(s.treino.id) }
                     )
                 }
+            }
             }
         }
     }
