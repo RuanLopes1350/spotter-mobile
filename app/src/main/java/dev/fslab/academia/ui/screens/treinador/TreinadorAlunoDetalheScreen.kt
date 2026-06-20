@@ -1,5 +1,6 @@
 package dev.fslab.academia.ui.screens.treinador
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,15 +20,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,9 +60,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.AlunoData
+import dev.fslab.academia.model.HistoricoPesoMetricas
 import dev.fslab.academia.model.TreinoData
 import dev.fslab.academia.ui.components.AcademiaAppBar
+import dev.fslab.academia.ui.components.ExerciciosFrequentesSection
+import dev.fslab.academia.ui.components.GruposMusculareSection
+import dev.fslab.academia.ui.components.SecaoEvolucaoPeriodo
+import dev.fslab.academia.ui.components.StatsSection
 import dev.fslab.academia.ui.theme.LocalAcademiaColors
+import dev.fslab.academia.ui.theme.LocalDimens
+import dev.fslab.academia.ui.util.Motion
+import dev.fslab.academia.ui.viewmodel.AlunoEstatisticasUiState
+import dev.fslab.academia.ui.viewmodel.DesvincularAlunoState
+import dev.fslab.academia.ui.viewmodel.PeriodoEstatisticasAluno
 import dev.fslab.academia.ui.viewmodel.TreinoDeletarUiState
 import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import dev.fslab.academia.ui.viewmodel.TreinadorAlunoDetalheUiState
@@ -71,14 +90,20 @@ fun TreinadorAlunoDetalheScreen(
     onBack: () -> Unit,
     onMontarTreino: (String, String) -> Unit,
     onAbrirTreino: (String) -> Unit,
+    onDesvinculado: () -> Unit = {},
     viewModel: TreinadorAlunoDetalheViewModel = viewModel(),
     treinoViewModel: TreinoViewModel = viewModel(),
     autoLoad: Boolean = true
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val deletarState by treinoViewModel.deletarState.collectAsState()
+    val desvincularState by viewModel.desvincularState.collectAsState()
+    val estatisticasState by viewModel.estatisticasState.collectAsState()
+    val periodoEstatisticas by viewModel.periodoEstatisticas.collectAsState()
     val treinoParaExcluir = remember { mutableStateOf<TreinoData?>(null) }
+    val mostrarDialogDesvincular = remember { mutableStateOf(false) }
 
     LaunchedEffect(alunoId, autoLoad) {
         if (autoLoad) {
@@ -91,6 +116,13 @@ fun TreinadorAlunoDetalheScreen(
             treinoViewModel.resetDeletar()
             treinoParaExcluir.value = null
             viewModel.carregar(alunoId)
+        }
+    }
+
+    LaunchedEffect(desvincularState) {
+        if (desvincularState is DesvincularAlunoState.Success) {
+            viewModel.resetDesvincular()
+            onDesvinculado()
         }
     }
 
@@ -110,7 +142,8 @@ fun TreinadorAlunoDetalheScreen(
             )
         }
     ) { innerPadding ->
-        when (val state = uiState) {
+        Crossfade(targetState = uiState, animationSpec = Motion.contentSpec(), label = "alunoDetalhe") { state ->
+        when (state) {
             is TreinadorAlunoDetalheUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Carregando perfil...", color = colors.textSecondary)
@@ -131,14 +164,65 @@ fun TreinadorAlunoDetalheScreen(
                     treinos = state.treinos,
                     diasTreino = state.diasTreino,
                     ultimoTreino = state.ultimoTreino,
+                    estatisticasState = estatisticasState,
+                    periodoEstatisticas = periodoEstatisticas,
                     modifier = Modifier.padding(innerPadding),
                     onMontarTreino = { onMontarTreino(state.aluno.id, state.aluno.nome) },
                     onAbrirTreino = onAbrirTreino,
-                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino }
+                    onExcluirTreino = { treino -> treinoParaExcluir.value = treino },
+                    onDesvincularAluno = { mostrarDialogDesvincular.value = true },
+                    onSelecionarPeriodoEstatisticas = { periodo -> viewModel.selecionarPeriodoEstatisticas(state.aluno.id, periodo) }
                 )
             }
             else -> Unit
         }
+        }
+    }
+
+    if (mostrarDialogDesvincular.value) {
+        val carregandoDesvincular = desvincularState is DesvincularAlunoState.Loading
+        AlertDialog(
+            onDismissRequest = { if (!carregandoDesvincular) mostrarDialogDesvincular.value = false },
+            containerColor = colors.surface,
+            title = { Text("Desvincular aluno?", color = colors.textPrimary) },
+            text = {
+                Text(
+                    "O aluno perderá acesso aos treinos que você montou para ele.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.desvincularAluno(alunoId) },
+                    enabled = !carregandoDesvincular,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.error,
+                        contentColor = colors.textOnPrimary
+                    )
+                ) { Text(if (carregandoDesvincular) "Desvinculando..." else "Desvincular") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { if (!carregandoDesvincular) mostrarDialogDesvincular.value = false },
+                    enabled = !carregandoDesvincular
+                ) { Text("Cancelar", color = colors.textSecondary) }
+            }
+        )
+    }
+
+    val desvincularErro = desvincularState as? DesvincularAlunoState.Error
+    if (desvincularErro != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetDesvincular() },
+            containerColor = colors.surface,
+            title = { Text("Falha ao desvincular", color = colors.textPrimary) },
+            text = { Text(desvincularErro.message, color = colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.resetDesvincular() }) {
+                    Text("OK", color = colors.primary)
+                }
+            }
+        )
     }
 
     val treinoExcluir = treinoParaExcluir.value
@@ -195,12 +279,17 @@ private fun AlunoDetalheContent(
     treinos: List<TreinoData>,
     diasTreino: Set<Int>,
     ultimoTreino: LocalDate?,
+    estatisticasState: AlunoEstatisticasUiState,
+    periodoEstatisticas: PeriodoEstatisticasAluno,
     modifier: Modifier = Modifier,
     onMontarTreino: () -> Unit,
     onAbrirTreino: (String) -> Unit,
-    onExcluirTreino: (TreinoData) -> Unit
+    onExcluirTreino: (TreinoData) -> Unit,
+    onDesvincularAluno: () -> Unit = {},
+    onSelecionarPeriodoEstatisticas: (PeriodoEstatisticasAluno) -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val hoje = LocalDate.now()
     val diaHojeIdx = hoje.dayOfWeek.value % 7
 
@@ -287,7 +376,7 @@ private fun AlunoDetalheContent(
                         .clip(RoundedCornerShape(16.dp))
                         .background(colors.surface)
                         .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
-                        .padding(12.dp),
+                        .padding(dimens.cardPaddingSmall),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     diasSemanaLabels.forEachIndexed { index, dia ->
@@ -391,6 +480,107 @@ private fun AlunoDetalheContent(
                     fontWeight = FontWeight.Bold
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = onDesvincularAluno,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, colors.error.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.PersonOff, null, tint = colors.error, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Desvincular aluno",
+                    color = colors.error,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            EstatisticasAlunoSection(
+                state = estatisticasState,
+                periodoSelecionado = periodoEstatisticas,
+                onSelecionarPeriodo = onSelecionarPeriodoEstatisticas
+            )
+        }
+    }
+}
+
+@Composable
+private fun EstatisticasAlunoSection(
+    state: AlunoEstatisticasUiState,
+    periodoSelecionado: PeriodoEstatisticasAluno,
+    onSelecionarPeriodo: (PeriodoEstatisticasAluno) -> Unit
+) {
+    val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Default.Insights, null, tint = colors.primary, modifier = Modifier.size(16.dp))
+            Text(
+                text = "ESTATÍSTICAS DO ALUNO",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = colors.textSecondary
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PeriodoEstatisticasAluno.entries.forEach { periodo ->
+                val selected = periodo == periodoSelecionado
+                FilterChip(
+                    selected = selected,
+                    onClick = { onSelecionarPeriodo(periodo) },
+                    label = { Text(periodo.label, style = MaterialTheme.typography.labelMedium) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = colors.primary.copy(alpha = 0.15f),
+                        selectedLabelColor = colors.primary,
+                        containerColor = colors.surface,
+                        labelColor = colors.textSecondary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selected,
+                        selectedBorderColor = colors.primary.copy(alpha = 0.4f),
+                        borderColor = colors.inputBorder
+                    )
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        when (state) {
+            is AlunoEstatisticasUiState.Idle, is AlunoEstatisticasUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = colors.primary)
+                }
+            }
+            is AlunoEstatisticasUiState.Error -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text(state.message, color = colors.textSecondary, fontSize = 13.sp, textAlign = TextAlign.Center)
+                }
+            }
+            is AlunoEstatisticasUiState.Success -> {
+                StatsSection(stats = state.stats, colors = colors)
+                SecaoEvolucaoPeriodo(state = state.comparativo, periodoLabel = periodoSelecionado.label, colors = colors)
+                if (state.grupos.isNotEmpty()) {
+                    GruposMusculareSection(grupos = state.grupos, colors = colors)
+                }
+                if (state.frequentes.isNotEmpty()) {
+                    ExerciciosFrequentesSection(frequentes = state.frequentes, colors = colors, onTap = {})
+                }
+                state.historicoPeso?.let { peso ->
+                    if (peso.totalRegistros > 0) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        SecaoPesoAluno(historicoPeso = peso, colors = colors)
+                    }
+                }
+            }
         }
     }
 }
@@ -398,6 +588,7 @@ private fun AlunoDetalheContent(
 @Composable
 private fun StatItem(value: String, label: String) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.primary)
         Text(text = label, fontSize = 10.sp, color = colors.textSecondary)
@@ -410,6 +601,7 @@ private fun TreinoCard(
     onExcluir: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -446,6 +638,7 @@ private fun TreinoCard(
 @Composable
 private fun AvatarCliente(nome: String, size: androidx.compose.ui.unit.Dp) {
     val colors = LocalAcademiaColors.current
+    val dimens = LocalDimens.current
     val iniciais = nome.split(" ").take(2).joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
 
     Box(
@@ -462,6 +655,146 @@ private fun AvatarCliente(nome: String, size: androidx.compose.ui.unit.Dp) {
             fontWeight = FontWeight.Bold,
             color = colors.primary
         )
+    }
+}
+
+@Composable
+private fun SecaoPesoAluno(historicoPeso: HistoricoPesoMetricas, colors: dev.fslab.academia.ui.theme.AcademiaColors) {
+    val tendenciaIcon = when (historicoPeso.tendencia) {
+        "SUBINDO" -> Icons.AutoMirrored.Filled.TrendingUp
+        "DESCENDO" -> Icons.AutoMirrored.Filled.TrendingDown
+        else -> Icons.AutoMirrored.Filled.TrendingFlat
+    }
+    val tendenciaColor = when (historicoPeso.tendencia) {
+        "SUBINDO" -> colors.featureOrange
+        "DESCENDO" -> colors.featureGreen
+        else -> colors.textSecondary
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Filled.MonitorWeight, null, tint = colors.primary, modifier = Modifier.size(16.dp))
+            Text(
+                text = "EVOLUÇÃO DE PESO",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = colors.textSecondary
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.inputBorder, RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = historicoPeso.pesoAtualKg?.let { "%.1f kg".format(it) } ?: "—",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primary
+                        )
+                        Text(
+                            text = "peso atual",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary
+                        )
+                    }
+                    if (historicoPeso.tendencia != null) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(tendenciaIcon, null, tint = tendenciaColor, modifier = Modifier.size(28.dp))
+                            Text(
+                                text = when (historicoPeso.tendencia) {
+                                    "SUBINDO" -> "subindo"
+                                    "DESCENDO" -> "descendo"
+                                    else -> "estável"
+                                },
+                                fontSize = 11.sp,
+                                color = tendenciaColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.inputBorder)
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    PesoStatItem(
+                        value = historicoPeso.pesoMinimoKg?.let { "%.1f kg".format(it) } ?: "—",
+                        label = "mínimo"
+                    )
+                    Box(
+                        modifier = Modifier.width(1.dp).height(32.dp).background(colors.inputBorder)
+                    )
+                    PesoStatItem(
+                        value = historicoPeso.pesoMaximoKg?.let { "%.1f kg".format(it) } ?: "—",
+                        label = "máximo"
+                    )
+                    Box(
+                        modifier = Modifier.width(1.dp).height(32.dp).background(colors.inputBorder)
+                    )
+                    PesoStatItem(
+                        value = historicoPeso.variacaoTotalKg?.let {
+                            val prefix = if (it > 0) "+" else ""
+                            "$prefix%.1f kg".format(it)
+                        } ?: "—",
+                        label = "variação total"
+                    )
+                }
+
+                historicoPeso.variacaoUltimaSemanKg?.let { varSemana ->
+                    val prefix = if (varSemana > 0) "+" else ""
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(colors.primary.copy(alpha = 0.08f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Variação última semana", fontSize = 12.sp, color = colors.textSecondary)
+                        Text(
+                            "$prefix%.1f kg".format(varSemana),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (varSemana > 0) colors.featureOrange else if (varSemana < 0) colors.featureGreen else colors.textSecondary
+                        )
+                    }
+                }
+
+                Text(
+                    text = "${historicoPeso.totalRegistros} registro${if (historicoPeso.totalRegistros != 1) "s" else ""}",
+                    fontSize = 11.sp,
+                    color = colors.textSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PesoStatItem(value: String, label: String) {
+    val colors = LocalAcademiaColors.current
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+        Text(label, fontSize = 10.sp, color = colors.textSecondary)
     }
 }
 

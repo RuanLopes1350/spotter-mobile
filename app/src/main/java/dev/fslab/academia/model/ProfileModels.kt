@@ -24,6 +24,7 @@ data class AlunoProfileData(
     @SerializedName("peso_atual_kg") val pesoKg: Double? = null,
     @SerializedName("altura_cm") val alturaCm: Int? = null,
     @SerializedName("academia_id") val academiaId: String? = null,
+    @SerializedName("treinador_id") val treinadorId: String? = null,
     @SerializedName("academias") val academias: List<AcademiaData>? = emptyList()
 )
 

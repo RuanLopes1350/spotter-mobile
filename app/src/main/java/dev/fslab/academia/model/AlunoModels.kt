@@ -29,3 +29,4 @@ data class AlunoListResponse(
     @SerializedName("data") val data: AlunoPaginationData? = null,
     @SerializedName("errors") val errors: List<Map<String, Any?>> = emptyList()
 )
+

@@ -157,8 +157,8 @@ private fun HistoricoPesoConteudo(data: HistoricoPesoData, colors: AcademiaColor
             val limite = LocalDate.now().minusMonths(meses)
             data.entradas.filter { entrada ->
                 try {
-                    val data = LocalDate.parse(entrada.dataAvaliacao.substring(0, 10))
-                    !data.isBefore(limite)
+                    val dataEntrada = LocalDate.parse(entrada.dataAvaliacao.substring(0, 10))
+                    !dataEntrada.isBefore(limite)
                 } catch (_: Exception) { true }
             }
         }

@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.fslab.academia.ui.viewmodel.TreinoViewModel
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +35,9 @@ import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.screens.ProfileScreen
 import dev.fslab.academia.ui.screens.PlaceholderScreen
 import dev.fslab.academia.ui.screens.aluno.AparelhosScreen
+import dev.fslab.academia.ui.screens.aluno.BuscarTreinadorScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoPesoScreen
+import dev.fslab.academia.ui.screens.aluno.PerfilTreinadorScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoProgressaoScreen
 import dev.fslab.academia.ui.screens.aluno.HistoricoScreen
 import dev.fslab.academia.ui.screens.aluno.SessaoDetalheScreen
@@ -149,14 +153,10 @@ fun AcademiaApp(
             when (val state = authState) {
                 is AuthState.Success -> {
                     if (!state.user.hasProfile) {
-                        // Se logou mas não tem perfil (ex: primeiro login social), 
-                        // manda para a tela de completar cadastro pré-preenchido
+                        // Usuário autenticado mas sem perfil (ex: primeiro login social).
+                        // Mantém Login na pilha para que o botão voltar funcione.
                         cadastroViewModel.preencherDadosSociais(state.user.name, state.user.email)
-                        
-                        navController.navigate(Screen.Cadastro.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                        navController.navigateSafely(Screen.Cadastro.route)
                     } else {
                         val targetRoute = if (state.user.tipo == UserTipo.TREINADOR) {
                             Screen.TreinadorHome.route
@@ -272,7 +272,19 @@ fun AcademiaApp(
 
             composable(Screen.Cadastro.route) {
                 CadastroScreen(
-                    onBack = { navController.popBackStackSafely() },
+                    onBack = {
+                        if (navController.previousBackStackEntry != null) {
+                            navController.popBackStackSafely()
+                        } else {
+                            // Pilha vazia (redirecionado via auth sem Login no back stack).
+                            // Faz logout e vai para Login explicitamente.
+                            authViewModel.logout()
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     onSuccess = {
                         val route = if (cadastroViewModel.tipo == UserTipo.TREINADOR) {
                             Screen.TreinadorHome.route
@@ -320,6 +332,9 @@ fun AcademiaApp(
                     onAbrirTreinoDoDia = { treinoId ->
                         navController.navigateSafely(Screen.TreinoDetalhe.comId(treinoId))
                     },
+                    onBuscarTreinador = {
+                        navController.navigateSafely(Screen.BuscarTreinador.route)
+                    },
                     homeViewModel = homeViewModel
                 )
             }
@@ -339,6 +354,27 @@ fun AcademiaApp(
                     },
                     onNotifications = { },
                     onLogout = { authViewModel.logout() }
+                )
+            }
+
+            composable(Screen.BuscarTreinador.route) {
+                BuscarTreinadorScreen(
+                    onBack = { navController.popBackStackSafely() },
+                    onAbrirPerfil = { id ->
+                        navController.navigateSafely(Screen.PerfilTreinador.comId(id))
+                    },
+                    academiaId = currentUser?.academiaId
+                )
+            }
+
+            composable(
+                route = Screen.PerfilTreinador.route,
+                arguments = listOf(navArgument("treinadorId") { type = NavType.StringType })
+            ) { entry ->
+                val treinadorId = entry.arguments?.getString("treinadorId").orEmpty()
+                PerfilTreinadorScreen(
+                    treinadorId = treinadorId,
+                    onBack = { navController.popBackStackSafely() }
                 )
             }
 
@@ -393,7 +429,9 @@ fun AcademiaApp(
                     exercicioId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id))
+                        navController.navigateSafely(Screen.ExercicioDetalhe.comId(id)) {
+                            popUpTo(Screen.ExercicioCriar.route) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -423,7 +461,11 @@ fun AcademiaApp(
                         }
                     },
                     onAbrirDetalhe = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        if (currentUser?.tipo == UserTipo.TREINADOR) {
+                            navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                        } else {
+                            navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        }
                     },
                     onCriar = {
                         navController.navigateSafely(Screen.TreinoCriar.route)
@@ -468,6 +510,7 @@ fun AcademiaApp(
             }
 
             composable(Screen.TreinoCriar.route) { entry ->
+                val treinoFormViewModel: TreinoViewModel = viewModel()
                 val novoId by entry.savedStateHandle
                     .getStateFlow<String?>("novo_exercicio_id", null)
                     .collectAsState()
@@ -475,7 +518,11 @@ fun AcademiaApp(
                     treinoId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        if (currentUser?.tipo == UserTipo.TREINADOR) {
+                            navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                        } else {
+                            navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        }
                     },
                     onCriarExercicio = {
                         navController.navigateSafely(Screen.ExercicioCriarParaTreino.route)
@@ -483,7 +530,8 @@ fun AcademiaApp(
                     novoExercicioId = novoId,
                     onConsumirNovoExercicio = {
                         entry.savedStateHandle["novo_exercicio_id"] = null
-                    }
+                    },
+                    viewModel = treinoFormViewModel
                 )
             }
 
@@ -665,7 +713,8 @@ fun AcademiaApp(
                     },
                     onAbrirTreino = { treinoId ->
                         navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(treinoId))
-                    }
+                    },
+                    onDesvinculado = { navController.popBackStackSafely() }
                 )
             }
 
