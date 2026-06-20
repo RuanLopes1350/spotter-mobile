@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,14 +36,16 @@ private val TURNOS_LABEL = mapOf("MANHA" to "Manhã", "TARDE" to "Tarde", "NOITE
 fun BuscarTreinadorScreen(
     onBack: () -> Unit,
     onAbrirPerfil: (String) -> Unit,
+    academiaId: String? = null,
     viewModel: BuscarTreinadorViewModel = viewModel()
 ) {
     val colors = LocalAcademiaColors.current
     val dimens = LocalDimens.current
     val uiState by viewModel.uiState.collectAsState()
     val search by viewModel.search.collectAsState()
+    val filtrarMinhaAcademia by viewModel.filtrarMinhaAcademia.collectAsState()
 
-    LaunchedEffect(Unit) { viewModel.carregar() }
+    LaunchedEffect(academiaId) { viewModel.carregar(academiaId) }
 
     Scaffold(
         containerColor = colors.background,
@@ -109,6 +112,36 @@ fun BuscarTreinadorScreen(
                 )
             }
 
+            if (academiaId != null) {
+                Spacer(Modifier.height(8.dp))
+                FilterChip(
+                    selected = filtrarMinhaAcademia,
+                    onClick = { viewModel.toggleFiltroAcademia() },
+                    label = { Text("Minha academia") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.BusinessCenter,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = colors.primary.copy(alpha = 0.15f),
+                        selectedLabelColor = colors.primary,
+                        selectedLeadingIconColor = colors.primary,
+                        containerColor = colors.surface,
+                        labelColor = colors.textSecondary,
+                        iconColor = colors.textSecondary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = filtrarMinhaAcademia,
+                        selectedBorderColor = colors.primary.copy(alpha = 0.4f),
+                        borderColor = colors.inputBorder
+                    )
+                )
+            }
+
             Spacer(Modifier.height(8.dp))
 
             when (val state = uiState) {
@@ -138,7 +171,13 @@ fun BuscarTreinadorScreen(
                     )
                     if (state.treinadores.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Nenhum resultado", color = colors.textSecondary)
+                            Text(
+                                text = if (filtrarMinhaAcademia)
+                                    "Nenhum treinador encontrado na sua academia"
+                                else
+                                    "Nenhum resultado",
+                                color = colors.textSecondary
+                            )
                         }
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -360,7 +360,8 @@ fun AcademiaApp(
                     onBack = { navController.popBackStackSafely() },
                     onAbrirPerfil = { id ->
                         navController.navigateSafely(Screen.PerfilTreinador.comId(id))
-                    }
+                    },
+                    academiaId = currentUser?.academiaId
                 )
             }
 
@@ -458,7 +459,11 @@ fun AcademiaApp(
                         }
                     },
                     onAbrirDetalhe = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        if (currentUser?.tipo == UserTipo.TREINADOR) {
+                            navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                        } else {
+                            navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        }
                     },
                     onCriar = {
                         navController.navigateSafely(Screen.TreinoCriar.route)
@@ -511,8 +516,10 @@ fun AcademiaApp(
                     treinoId = null,
                     onBack = { navController.popBackStackSafely() },
                     onSalvo = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id)) {
-                            popUpTo(Screen.TreinoCriar.route) { inclusive = true }
+                        if (currentUser?.tipo == UserTipo.TREINADOR) {
+                            navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                        } else {
+                            navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
                         }
                     },
                     onCriarExercicio = {

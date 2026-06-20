@@ -11,6 +11,7 @@ data class TreinadorData(
     @SerializedName("especializacao") val especializacao: String,
     @SerializedName("graduacao") val graduacao: String,
     @SerializedName("apresentacao") val apresentacao: String? = null,
+    @SerializedName("academia_id") val academiaId: String? = null,
 )
 
 data class TreinadorPaginationData(
