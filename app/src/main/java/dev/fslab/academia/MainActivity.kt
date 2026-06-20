@@ -458,7 +458,11 @@ fun AcademiaApp(
                         }
                     },
                     onAbrirDetalhe = { id ->
-                        navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        if (currentUser?.tipo == UserTipo.TREINADOR) {
+                            navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
+                        } else {
+                            navController.navigateSafely(Screen.TreinoDetalhe.comId(id))
+                        }
                     },
                     onCriar = {
                         navController.navigateSafely(Screen.TreinoCriar.route)
