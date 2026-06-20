@@ -8,6 +8,7 @@ import dev.fslab.academia.model.CriarExercicioRequest
 import dev.fslab.academia.model.EscopoExercicio
 import dev.fslab.academia.model.ExercicioData
 import dev.fslab.academia.model.GrupoMuscular
+import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,7 +63,8 @@ data class ExercicioFiltros(
     val aparelhoIds: Set<String> = emptySet(),
     val escopo: EscopoExercicio = EscopoExercicio.TODOS,
     val emUso: Boolean? = null,
-    val comMidia: Boolean? = null
+    val comMidia: Boolean? = null,
+    val tipoExercicio: TipoExercicio? = null
 )
 
 class ExercicioViewModel : ViewModel() {
@@ -107,7 +109,7 @@ class ExercicioViewModel : ViewModel() {
                 )
                 val pagina = resposta.data
                 val brutos = pagina?.dados.orEmpty()
-                val temFiltroClient = f.musculoIds.isNotEmpty() || f.aparelhoIds.isNotEmpty()
+                val temFiltroClient = f.musculoIds.isNotEmpty() || f.aparelhoIds.isNotEmpty() || f.tipoExercicio != null
 
                 var lista = brutos
                 if (f.musculoIds.isNotEmpty()) {
@@ -115,6 +117,9 @@ class ExercicioViewModel : ViewModel() {
                 }
                 if (f.aparelhoIds.isNotEmpty()) {
                     lista = lista.filter { ex -> ex.aparelhos.any { it.aparelhoId in f.aparelhoIds } }
+                }
+                if (f.tipoExercicio != null) {
+                    lista = lista.filter { ex -> ex.tipo == f.tipoExercicio }
                 }
 
                 _uiState.value = if (lista.isEmpty()) {

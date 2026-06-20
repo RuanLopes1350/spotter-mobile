@@ -30,7 +30,10 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -68,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.fslab.academia.model.EscopoExercicio
 import dev.fslab.academia.model.ExercicioData
+import dev.fslab.academia.model.TipoExercicio
 import dev.fslab.academia.model.ExercicioMusculoData
 import dev.fslab.academia.ui.components.AcademiaAppBar
 import dev.fslab.academia.ui.components.AparelhoSelectionBottomSheet
@@ -206,6 +210,10 @@ fun ExercicioCatalogoScreen(
                             }
                             viewModel.atualizarFiltros(filtros.copy(comMidia = proximo))
                         },
+                        onAlternarTipo = { tipo ->
+                            val proximo = if (filtros.tipoExercicio == tipo) null else tipo
+                            viewModel.atualizarFiltros(filtros.copy(tipoExercicio = proximo))
+                        },
                         onLimpar = { viewModel.atualizarFiltros(ExercicioFiltros()) }
                     )
                 }
@@ -302,6 +310,7 @@ private fun BarraFiltros(
     onAlternarEscopo: (EscopoExercicio) -> Unit,
     onAlternarEmUso: () -> Unit,
     onAlternarComMidia: () -> Unit,
+    onAlternarTipo: (TipoExercicio) -> Unit,
     onLimpar: () -> Unit
 ) {
     val colors = LocalAcademiaColors.current
@@ -312,7 +321,8 @@ private fun BarraFiltros(
         filtros.busca.isNotBlank() ||
         filtros.escopo != EscopoExercicio.TODOS ||
         filtros.emUso != null ||
-        filtros.comMidia != null
+        filtros.comMidia != null ||
+        filtros.tipoExercicio != null
 
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(scroll),
@@ -378,6 +388,27 @@ private fun BarraFiltros(
             onClick = onAlternarEmUso,
             label = { Text(if (filtros.emUso == false) "Sem treino" else "Em uso") },
             leadingIcon = { Icon(Icons.Filled.Bookmark, null, modifier = Modifier.size(18.dp)) },
+            colors = academiaFilterChipColors()
+        )
+        FilterChip(
+            selected = filtros.tipoExercicio == TipoExercicio.REPETICAO,
+            onClick = { onAlternarTipo(TipoExercicio.REPETICAO) },
+            label = { Text("Repetição") },
+            leadingIcon = { Icon(Icons.Filled.Repeat, null, modifier = Modifier.size(18.dp)) },
+            colors = academiaFilterChipColors()
+        )
+        FilterChip(
+            selected = filtros.tipoExercicio == TipoExercicio.TEMPO,
+            onClick = { onAlternarTipo(TipoExercicio.TEMPO) },
+            label = { Text("Tempo") },
+            leadingIcon = { Icon(Icons.Filled.Timer, null, modifier = Modifier.size(18.dp)) },
+            colors = academiaFilterChipColors()
+        )
+        FilterChip(
+            selected = filtros.tipoExercicio == TipoExercicio.DISTANCIA,
+            onClick = { onAlternarTipo(TipoExercicio.DISTANCIA) },
+            label = { Text("Distância") },
+            leadingIcon = { Icon(Icons.Filled.Straighten, null, modifier = Modifier.size(18.dp)) },
             colors = academiaFilterChipColors()
         )
         FilterChip(
