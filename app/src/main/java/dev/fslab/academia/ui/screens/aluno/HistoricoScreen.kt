@@ -79,6 +79,7 @@ private val STATUS_LABELS = listOf(null to "Todas", "CONCLUIDA" to "Concluídas"
 @Composable
 fun HistoricoScreen(
     onNavigateTab: (String) -> Unit = {},
+    onLogout: () -> Unit = {},
     onAbrirProgressao: (String, String) -> Unit = { _, _ -> },
     onAbrirSessao: (String) -> Unit = {},
     viewModel: HistoricoViewModel = viewModel()
@@ -321,7 +322,8 @@ fun HistoricoScreen(
     if (mostrarMaisMenu) {
         MaisMenuBottomSheet(
             onDismiss = { mostrarMaisMenu = false },
-            onNavegar = { route -> onNavigateTab(route) }
+            onNavegar = { route -> onNavigateTab(route) },
+            onLogout = onLogout
         )
     }
 }

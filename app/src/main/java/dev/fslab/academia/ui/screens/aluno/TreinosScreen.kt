@@ -94,6 +94,7 @@ import java.time.format.DateTimeFormatter
 fun TreinosScreen(
     onBack: () -> Unit,
     onNavigateTab: (String) -> Unit,
+    onLogout: () -> Unit = {},
     onAbrirDetalhe: (String) -> Unit = {},
     onCriar: () -> Unit = {},
     viewModel: TreinoViewModel = viewModel()
@@ -201,9 +202,6 @@ fun TreinosScreen(
                         }
                         IconButton(onClick = { onNavigateTab("exercicio_catalogo") }) {
                             Icon(Icons.Filled.FitnessCenter, contentDescription = "Exercícios")
-                        }
-                        IconButton(onClick = { viewModel.carregar() }) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Atualizar")
                         }
                     }
                 }
@@ -382,7 +380,8 @@ fun TreinosScreen(
     if (mostrarMaisMenu) {
         MaisMenuBottomSheet(
             onDismiss = { mostrarMaisMenu = false },
-            onNavegar = { route -> onNavigateTab(route) }
+            onNavegar = { route -> onNavigateTab(route) },
+            onLogout = onLogout
         )
     }
 }

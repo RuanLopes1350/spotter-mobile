@@ -43,6 +43,7 @@ import java.time.format.DateTimeFormatter
 fun ChatScreen(
     userTipo: UserTipo,
     onNavigateTab: (String) -> Unit,
+    onLogout: () -> Unit = {},
     onOpenConversa: (String) -> Unit,
     viewModel: ConversasViewModel = viewModel(),
     chatViewModel: ChatViewModel = viewModel()
@@ -141,7 +142,8 @@ fun ChatScreen(
             onNavegar = { route ->
                 mostrarMaisMenu = false
                 onNavigateTab(route)
-            }
+            },
+            onLogout = onLogout
         )
     }
 }

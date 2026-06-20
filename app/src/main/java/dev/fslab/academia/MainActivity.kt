@@ -31,6 +31,7 @@ import dev.fslab.academia.navigation.popBackStackSafely
 import dev.fslab.academia.network.CookieManager
 import dev.fslab.academia.network.GoogleSignInHelper
 import dev.fslab.academia.model.UserTipo
+import dev.fslab.academia.ui.screens.ConfiguracoesScreen
 import dev.fslab.academia.ui.screens.HomeScreen
 import dev.fslab.academia.ui.screens.ProfileScreen
 import dev.fslab.academia.ui.screens.PlaceholderScreen
@@ -392,6 +393,7 @@ fun AcademiaApp(
                             navController.navigateSafely(route)
                         }
                     },
+                    onLogout = { authViewModel.logout() },
                     onAbrirDetalhe = { id ->
                         navController.navigateSafely(Screen.ExercicioDetalhe.comId(id))
                     },
@@ -405,7 +407,8 @@ fun AcademiaApp(
             composable(Screen.Aparelhos.route) {
                 AparelhosScreen(
                     onBack = { navController.popBackStackSafely() },
-                    onNavigateTab = { route -> navController.navigateSafely(route) }
+                    onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onLogout = { authViewModel.logout() }
                 )
             }
 
@@ -460,6 +463,7 @@ fun AcademiaApp(
                             navController.navigateSafely(route)
                         }
                     },
+                    onLogout = { authViewModel.logout() },
                     onAbrirDetalhe = { id ->
                         if (currentUser?.tipo == UserTipo.TREINADOR) {
                             navController.navigateSafely(Screen.TreinadorTreinoDetalhe.comId(id))
@@ -574,6 +578,7 @@ fun AcademiaApp(
                 val historicoViewModel: HistoricoViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                 HistoricoScreen(
                     onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onLogout = { authViewModel.logout() },
                     onAbrirProgressao = { exercicioId, exercicioNome ->
                         navController.navigateSafely(
                             Screen.HistoricoProgressao.comId(exercicioId, exercicioNome)
@@ -650,10 +655,12 @@ fun AcademiaApp(
             }
 
             composable(Screen.Configuracoes.route) {
-                PlaceholderScreen(
-                    titulo = "Configurações",
-                    descricao = "Preferências do app — implementação futura",
-                    onBack = { navController.popBackStackSafely() }
+                ConfiguracoesScreen(
+                    currentUser = currentUser,
+                    onBack = { navController.popBackStackSafely() },
+                    onLogout = { authViewModel.logout() },
+                    themeViewModel = themeViewModel,
+                    perfilViewModel = perfilViewModel
                 )
             }
 
@@ -661,6 +668,7 @@ fun AcademiaApp(
                 ChatScreen(
                     userTipo = currentUser?.tipo ?: UserTipo.ALUNO,
                     onNavigateTab = { route -> navController.navigateSafely(route) },
+                    onLogout = { authViewModel.logout() },
                     onOpenConversa = { conversaId ->
                         navController.navigateSafely(Screen.ChatDetalhe.comId(conversaId))
                     }

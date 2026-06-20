@@ -95,6 +95,7 @@ import dev.fslab.academia.ui.viewmodel.ExercicioViewModel
 fun ExercicioCatalogoScreen(
     onBack: () -> Unit,
     onNavigateTab: (String) -> Unit,
+    onLogout: () -> Unit = {},
     onAbrirDetalhe: (String) -> Unit = {},
     onCriar: () -> Unit = {},
     viewModel: ExercicioViewModel = viewModel()
@@ -310,7 +311,8 @@ fun ExercicioCatalogoScreen(
     if (mostrarMaisMenu) {
         MaisMenuBottomSheet(
             onDismiss = { mostrarMaisMenu = false },
-            onNavegar = { route -> onNavigateTab(route) }
+            onNavegar = { route -> onNavigateTab(route) },
+            onLogout = onLogout
         )
     }
 }
