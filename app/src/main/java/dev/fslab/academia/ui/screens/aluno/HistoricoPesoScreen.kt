@@ -432,11 +432,8 @@ private fun GraficoPeso(entradas: List<HistoricoPesoEntrada>, colors: AcademiaCo
                         pathFill.moveTo(x, h - padBottom)
                         pathFill.lineTo(x, y)
                     } else {
-                        val prevX = xAt(i - 1)
-                        val prevY = yAt(pontos[i - 1])
-                        val cx = (prevX + x) / 2
-                        pathLine.cubicTo(cx, prevY, cx, y, x, y)
-                        pathFill.cubicTo(cx, prevY, cx, y, x, y)
+                        pathLine.lineTo(x, y)
+                        pathFill.lineTo(x, y)
                     }
                 }
                 pathFill.lineTo(xAt(pontos.lastIndex), h - padBottom)
