@@ -24,9 +24,26 @@ class BuscarTreinadorViewModel : ViewModel() {
     private val _search = MutableStateFlow("")
     val search: StateFlow<String> = _search.asStateFlow()
 
-    private var todosOsTreinadores: List<TreinadorData> = emptyList()
+    private val _filtrarMinhaAcademia = MutableStateFlow(false)
+    val filtrarMinhaAcademia: StateFlow<Boolean> = _filtrarMinhaAcademia.asStateFlow()
 
-    fun carregar() {
+    private var todosOsTreinadores: List<TreinadorData> = emptyList()
+    private var alunoAcademiaId: String? = null
+
+    fun carregar(academiaId: String? = null) {
+        alunoAcademiaId = academiaId
+        buscarDaApi()
+    }
+
+    fun toggleFiltroAcademia() {
+        if (alunoAcademiaId == null) return
+        _filtrarMinhaAcademia.value = !_filtrarMinhaAcademia.value
+        if (_uiState.value is BuscarTreinadorUiState.Success) {
+            _uiState.value = BuscarTreinadorUiState.Success(filtrar(_search.value))
+        }
+    }
+
+    private fun buscarDaApi() {
         if (_uiState.value is BuscarTreinadorUiState.Loading) return
         viewModelScope.launch {
             _uiState.value = BuscarTreinadorUiState.Loading
@@ -48,9 +65,13 @@ class BuscarTreinadorViewModel : ViewModel() {
     }
 
     private fun filtrar(query: String): List<TreinadorData> {
-        if (query.isBlank()) return todosOsTreinadores
+        var lista = todosOsTreinadores
+        if (_filtrarMinhaAcademia.value && alunoAcademiaId != null) {
+            lista = lista.filter { it.academiaId == alunoAcademiaId }
+        }
+        if (query.isBlank()) return lista
         val q = query.trim().lowercase()
-        return todosOsTreinadores.filter { t ->
+        return lista.filter { t ->
             t.nome.lowercase().contains(q) ||
             t.especializacao.lowercase().contains(q) ||
             (t.apresentacao?.lowercase()?.contains(q) == true)

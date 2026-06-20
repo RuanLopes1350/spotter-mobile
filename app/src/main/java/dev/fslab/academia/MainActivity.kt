@@ -360,7 +360,8 @@ fun AcademiaApp(
                     onBack = { navController.popBackStackSafely() },
                     onAbrirPerfil = { id ->
                         navController.navigateSafely(Screen.PerfilTreinador.comId(id))
-                    }
+                    },
+                    academiaId = currentUser?.academiaId
                 )
             }
 

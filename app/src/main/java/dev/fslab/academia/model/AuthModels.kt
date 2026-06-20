@@ -92,6 +92,14 @@ fun UserData.toUser(): User {
         else -> UserTipo.ALUNO
     }
     
+    val academiaId = runCatching {
+        perfil?.takeIf { !it.isJsonNull }
+            ?.asJsonObject
+            ?.get("academia_id")
+            ?.takeIf { !it.isJsonNull }
+            ?.asString
+    }.getOrNull()
+
     return User(
         id = id,
         name = name,
@@ -99,6 +107,7 @@ fun UserData.toUser(): User {
         image = image.orEmpty(),
         tipo = userTipo,
         isAdmin = isAdmin ?: false,
-        hasProfile = perfil != null && !perfil.isJsonNull
+        hasProfile = perfil != null && !perfil.isJsonNull,
+        academiaId = academiaId
     )
 }

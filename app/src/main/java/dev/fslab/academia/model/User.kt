@@ -12,5 +12,6 @@ data class User(
     val image: String,
     val tipo: UserTipo = UserTipo.ALUNO,
     val isAdmin: Boolean = false,
-    val hasProfile: Boolean = false
+    val hasProfile: Boolean = false,
+    val academiaId: String? = null
 )
